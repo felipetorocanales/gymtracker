@@ -1,0 +1,10 @@
+name = "strava-oauth-proxy"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# Las variables secretas (STRAVA_CLIENT_SECRET) NO van aquí.
+# Se configuran con: wrangler secret put STRAVA_CLIENT_SECRET
+# Las variables no sensibles pueden ir aquí:
+[vars]
+STRAVA_CLIENT_ID = "245269"
+ALLOWED_ORIGIN = "https://gymtracker-b6d6b.web.app"

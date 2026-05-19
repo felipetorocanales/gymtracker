@@ -493,7 +493,7 @@ async function loadSessionFromFirestore() {
 
             // Automatically fix case-sensitivity duplicated data
             const wasModified = migrateSessionData();
-            
+
             if (wasModified) {
                 // Background save the migrated structure back to firestore
                 syncSessionToFirestore();
@@ -1625,14 +1625,14 @@ function renderVolumeChart() {
     } else {
         // AGREGACIÓN MENSUAL
         const monthlyData = {}; // { "ene 24": [values] }
-        
+
         for (let w = 1; w <= maxWeek; w++) {
             const logs = currentSession.logs[activeExercise][w] || [];
             if (logs.length === 0) continue;
-            
+
             const monthLabel = getMonthLabel(w);
             if (!monthlyData[monthLabel]) monthlyData[monthLabel] = [];
-            
+
             let weekValue = 0;
             if (currentChartType === 'volume') {
                 logs.forEach(log => {
@@ -1661,7 +1661,7 @@ function renderVolumeChart() {
             if (monthlyData[monthLabel] && !seenMonths.includes(monthLabel)) {
                 seenMonths.push(monthLabel);
                 labels.push(monthLabel);
-                
+
                 const values = monthlyData[monthLabel];
                 if (currentChartType === 'volume') {
                     // SUM of volume for the month
@@ -1832,11 +1832,11 @@ function analyzeGlobalWeek(weekNum) {
         } else {
             analysis += `¡Gran trabajo! Tu carga subió un <b>${pctDiff.toFixed(1)}%</b>.<br>`;
         }
-        
+
         // Find what increased
         const increasedEx = [];
         const makeExLink = (name) => `<span class="ai-ex-link" data-ex="${name}" style="color: #60a5fa; text-decoration: underline; cursor: pointer; font-weight: bold;">${name}</span>`;
-        
+
         Object.keys(currentWeekData).forEach(ex => {
             if (prevWeeksAvgData[ex] && currentWeekData[ex].volume > (prevWeeksAvgData[ex].volume / prevWeeksAvgData[ex].count) * 1.2) {
                 increasedEx.push(makeExLink(ex));
@@ -1852,12 +1852,12 @@ function analyzeGlobalWeek(weekNum) {
         } else {
             analysis += `Noté una baja del <b>${pctDiff.toFixed(1)}%</b> en tu carga total.<br><br>`;
         }
-        
+
         const makeExLink = (name) => `<span class="ai-ex-link" data-ex="${name}" style="color: #60a5fa; text-decoration: underline; cursor: pointer; font-weight: bold;">${name}</span>`;
-        
+
         let missing = [];
         let dropped = [];
-        
+
         const normalize = str => str.trim().toLowerCase();
 
         // Build exercise -> dayId map from customExercises (complete after migration)
@@ -1929,7 +1929,7 @@ function analyzeGlobalWeek(weekNum) {
                 analysis += `Detecté que omitiste por completo tu(s) día(s) de:<br>• <b style="color: #8b5cf6;">${skippedDays.join('</b><br>• <b style="color: #8b5cf6;">')}</b><br><br>`;
             }
         }
-        
+
         if (poorDays.length > 0) {
             analysis += `Noté un bajo rendimiento general (menos series o ejercicios omitidos) en tu(s) día(s) de:<br>• <b style="color: #f59e0b;">${poorDays.join('</b><br>• <b style="color: #f59e0b;">')}</b><br><br>`;
         }
@@ -2108,7 +2108,7 @@ function renderGlobalProgressChart() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: { 
+                    grid: {
                         color: 'rgba(255, 255, 255, 0.03)',
                         drawBorder: false
                     },
@@ -2116,7 +2116,7 @@ function renderGlobalProgressChart() {
                 },
                 x: {
                     grid: { display: false },
-                    ticks: { 
+                    ticks: {
                         color: 'rgba(255, 255, 255, 0.3)',
                         font: { size: 10, weight: '600' }
                     }
@@ -2131,8 +2131,8 @@ function renderCardioChart() {
     const ctx = document.getElementById('cardioChart');
     if (!ctx || !container) return;
 
-    const runLogs    = currentSession.cardioLogs  || [];
-    const cycleLogs  = currentSession.cyclingLogs || [];
+    const runLogs = currentSession.cardioLogs || [];
+    const cycleLogs = currentSession.cyclingLogs || [];
 
     // Helper: get week/month label from an ISO date string
     const getMonday = (d) => {
@@ -2167,7 +2167,7 @@ function renderCardioChart() {
 
     const keyFn = cardioTimeUnit === 'week' ? weekKey : monthKey;
 
-    const runMap   = aggregate(runLogs,   keyFn);
+    const runMap = aggregate(runLogs, keyFn);
     const cycleMap = aggregate(cycleLogs, keyFn);
 
     // Union of all period keys, sorted chronologically
@@ -2186,10 +2186,10 @@ function renderCardioChart() {
         ? allKeys.map(k => {
             const d = new Date(k + 'T12:00:00');
             return d.toLocaleString('es-ES', { day: '2-digit', month: 'short' });
-          })
+        })
         : allKeys; // already month labels
 
-    const runData   = allKeys.map(k => Math.round((runMap[k]   || 0) * 100) / 100);
+    const runData = allKeys.map(k => Math.round((runMap[k] || 0) * 100) / 100);
     const cycleData = allKeys.map(k => Math.round((cycleMap[k] || 0) * 100) / 100);
 
     container.style.display = 'block';
@@ -2276,42 +2276,42 @@ const screenRunning = document.getElementById('screen-running');
 const screenCycling = document.getElementById('screen-cycling');
 
 // ── Running DOM ──────────────────────────────────────────────
-const btnStartRunning    = document.getElementById('btn-start-running');
-const btnBackRunning     = document.getElementById('btn-back-running');
-const btnModeGps         = document.getElementById('btn-mode-gps');
-const btnModeTreadmill   = document.getElementById('btn-mode-treadmill');
-const gpsStatusBar       = document.getElementById('gps-status-bar');
-const gpsStatusIcon      = document.getElementById('gps-status-icon');
-const gpsStatusText      = document.getElementById('gps-status-text');
-const runningTimerEl     = document.getElementById('running-timer');
-const statDistance       = document.getElementById('stat-distance');
-const statPace           = document.getElementById('stat-pace');
-const statCalories       = document.getElementById('stat-calories');
-const btnRunStart        = document.getElementById('btn-run-start');
-const btnRunStop         = document.getElementById('btn-run-stop');
+const btnStartRunning = document.getElementById('btn-start-running');
+const btnBackRunning = document.getElementById('btn-back-running');
+const btnModeGps = document.getElementById('btn-mode-gps');
+const btnModeTreadmill = document.getElementById('btn-mode-treadmill');
+const gpsStatusBar = document.getElementById('gps-status-bar');
+const gpsStatusIcon = document.getElementById('gps-status-icon');
+const gpsStatusText = document.getElementById('gps-status-text');
+const runningTimerEl = document.getElementById('running-timer');
+const statDistance = document.getElementById('stat-distance');
+const statPace = document.getElementById('stat-pace');
+const statCalories = document.getElementById('stat-calories');
+const btnRunStart = document.getElementById('btn-run-start');
+const btnRunStop = document.getElementById('btn-run-stop');
 const runningHistoryList = document.getElementById('running-history-list');
-const stravaStatusEl     = document.getElementById('strava-status');
-const stravaStatusText   = document.getElementById('strava-status-text');
-const btnConnectStrava   = document.getElementById('btn-connect-strava');
+const stravaStatusEl = document.getElementById('strava-status');
+const stravaStatusText = document.getElementById('strava-status-text');
+const btnConnectStrava = document.getElementById('btn-connect-strava');
 
 // ── Cycling DOM ──────────────────────────────────────────────
-const btnStartCycling        = document.getElementById('btn-start-cycling');
-const btnBackCycling         = document.getElementById('btn-back-cycling');
-const btnCycleModeGps        = document.getElementById('btn-cycle-mode-gps');
-const btnCycleModeIndoor     = document.getElementById('btn-cycle-mode-indoor');
-const cycleGpsStatusBar      = document.getElementById('cycle-gps-status-bar');
-const cycleGpsStatusIcon     = document.getElementById('cycle-gps-status-icon');
-const cycleGpsStatusText     = document.getElementById('cycle-gps-status-text');
-const cyclingTimerEl         = document.getElementById('cycling-timer');
-const cycleStatDistance      = document.getElementById('cycle-stat-distance');
-const cycleStatSpeed         = document.getElementById('cycle-stat-speed');
-const cycleStatCalories      = document.getElementById('cycle-stat-calories');
-const btnCycleStart          = document.getElementById('btn-cycle-start');
-const btnCycleStop           = document.getElementById('btn-cycle-stop');
-const cyclingHistoryList     = document.getElementById('cycling-history-list');
-const stravaStatusCyclingEl  = document.getElementById('strava-status-cycling');
-const stravaStatusTextCycling= document.getElementById('strava-status-text-cycling');
-const btnConnectStravaCycling= document.getElementById('btn-connect-strava-cycling');
+const btnStartCycling = document.getElementById('btn-start-cycling');
+const btnBackCycling = document.getElementById('btn-back-cycling');
+const btnCycleModeGps = document.getElementById('btn-cycle-mode-gps');
+const btnCycleModeIndoor = document.getElementById('btn-cycle-mode-indoor');
+const cycleGpsStatusBar = document.getElementById('cycle-gps-status-bar');
+const cycleGpsStatusIcon = document.getElementById('cycle-gps-status-icon');
+const cycleGpsStatusText = document.getElementById('cycle-gps-status-text');
+const cyclingTimerEl = document.getElementById('cycling-timer');
+const cycleStatDistance = document.getElementById('cycle-stat-distance');
+const cycleStatSpeed = document.getElementById('cycle-stat-speed');
+const cycleStatCalories = document.getElementById('cycle-stat-calories');
+const btnCycleStart = document.getElementById('btn-cycle-start');
+const btnCycleStop = document.getElementById('btn-cycle-stop');
+const cyclingHistoryList = document.getElementById('cycling-history-list');
+const stravaStatusCyclingEl = document.getElementById('strava-status-cycling');
+const stravaStatusTextCycling = document.getElementById('strava-status-text-cycling');
+const btnConnectStravaCycling = document.getElementById('btn-connect-strava-cycling');
 
 // ── State ────────────────────────────────────────────────────
 let isRunning = false, runInterval = null, runElapsed = 0;
@@ -2322,43 +2322,43 @@ let curSpeedKmh = 0;
 
 // ── Helpers ──────────────────────────────────────────────────
 function fmtHMS(s) {
-    return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+    return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 function fmtMM(s) {
-    return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+    return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 function fmtDur(s) {
-    const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
-    return h>0?`${h}h ${String(m).padStart(2,'0')}m`:`${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sc = s % 60;
+    return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`;
 }
 function fmtDate(iso) {
-    return new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    return new Date(iso).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
-function haversineKm(la1,lo1,la2,lo2) {
-    const R=6371,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;
-    const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
-    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+function haversineKm(la1, lo1, la2, lo2) {
+    const R = 6371, dLa = (la2 - la1) * Math.PI / 180, dLo = (lo2 - lo1) * Math.PI / 180;
+    const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * Math.PI / 180) * Math.cos(la2 * Math.PI / 180) * Math.sin(dLo / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-function runKcal(km){return Math.round(km*60);}
-function cycleKcal(km){return Math.round(km*30);}
+function runKcal(km) { return Math.round(km * 60); }
+function cycleKcal(km) { return Math.round(km * 30); }
 
 // ── Strava UI ────────────────────────────────────────────────
 function updateStravaStatusUI() {
-    const tokens = (() => { try { return JSON.parse(localStorage.getItem('strava_tokens')||'null'); } catch{return null;} })();
+    const tokens = (() => { try { return JSON.parse(localStorage.getItem('strava_tokens') || 'null'); } catch { return null; } })();
     const ok = !!(tokens && tokens.access_token);
-    const t = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+    const t = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
     [[stravaStatusEl, stravaStatusText, btnConnectStrava],
-     [stravaStatusCyclingEl, stravaStatusTextCycling, btnConnectStravaCycling]
-    ].forEach(([bar,txt,btn]) => {
-        if(!bar) return;
+    [stravaStatusCyclingEl, stravaStatusTextCycling, btnConnectStravaCycling]
+    ].forEach(([bar, txt, btn]) => {
+        if (!bar) return;
         bar.classList.toggle('strava-connected', ok);
-        if(txt) txt.textContent = ok ? `Strava conectado · Última sync: ${t}` : 'Conecta para sincronizar automáticamente';
-        if(btn) { btn.textContent = ok?'Desconectar':'Conectar'; btn.className = ok?'btn-strava-disconnect':'btn-strava-connect'; }
+        if (txt) txt.textContent = ok ? `Strava conectado · Última sync: ${t}` : 'Conecta para sincronizar automáticamente';
+        if (btn) { btn.textContent = ok ? 'Desconectar' : 'Conectar'; btn.className = ok ? 'btn-strava-disconnect' : 'btn-strava-connect'; }
     });
 }
 function handleStravaConnect() {
-    const tokens = (() => { try { return JSON.parse(localStorage.getItem('strava_tokens')||'null'); } catch{return null;} })();
-    if(tokens && tokens.access_token) {
+    const tokens = (() => { try { return JSON.parse(localStorage.getItem('strava_tokens') || 'null'); } catch { return null; } })();
+    if (tokens && tokens.access_token) {
         localStorage.removeItem('strava_tokens');
         updateStravaStatusUI();
         showToast('Strava desconectado', 'info');
@@ -2372,142 +2372,142 @@ function handleStravaConnect() {
 
 // ── GPS helpers ──────────────────────────────────────────────
 function setGpsUI(bar, icon, text, state) {
-    if(!bar) return;
+    if (!bar) return;
     bar.className = 'gps-status-bar';
-    if(state==='active') bar.classList.add('gps-active');
-    if(state==='error')  bar.classList.add('gps-error');
-    if(icon) icon.textContent = state==='active'?'✅':state==='error'?'⚠️':'📡';
-    if(text) text.textContent = state==='active'?'GPS activo':state==='error'?'Error de GPS. Revisa permisos.':text.textContent;
+    if (state === 'active') bar.classList.add('gps-active');
+    if (state === 'error') bar.classList.add('gps-error');
+    if (icon) icon.textContent = state === 'active' ? '✅' : state === 'error' ? '⚠️' : '📡';
+    if (text) text.textContent = state === 'active' ? 'GPS activo' : state === 'error' ? 'Error de GPS. Revisa permisos.' : text.textContent;
 }
 
 // ══════════════════════════════════════════════════════════════
 // RUNNING
 // ══════════════════════════════════════════════════════════════
 function resetRunDisplays() {
-    runDistKm=0; runElapsed=0; runLastPos=null;
-    if(runningTimerEl) runningTimerEl.textContent='00:00:00';
-    if(statDistance)  statDistance.textContent='0.00';
-    if(statPace)      statPace.textContent='--:--';
-    if(statCalories)  statCalories.textContent='0';
+    runDistKm = 0; runElapsed = 0; runLastPos = null;
+    if (runningTimerEl) runningTimerEl.textContent = '00:00:00';
+    if (statDistance) statDistance.textContent = '0.00';
+    if (statPace) statPace.textContent = '--:--';
+    if (statCalories) statCalories.textContent = '0';
 }
 function stopRunGps() {
-    if(runWatchId!==null){navigator.geolocation.clearWatch(runWatchId);runWatchId=null;}
+    if (runWatchId !== null) { navigator.geolocation.clearWatch(runWatchId); runWatchId = null; }
 }
 function startRunGps() {
-    if(!navigator.geolocation){setGpsUI(gpsStatusBar,gpsStatusIcon,gpsStatusText,'error');return;}
-    setGpsUI(gpsStatusBar,gpsStatusIcon,gpsStatusText,'idle');
-    if(gpsStatusText) gpsStatusText.textContent='Buscando señal GPS...';
+    if (!navigator.geolocation) { setGpsUI(gpsStatusBar, gpsStatusIcon, gpsStatusText, 'error'); return; }
+    setGpsUI(gpsStatusBar, gpsStatusIcon, gpsStatusText, 'idle');
+    if (gpsStatusText) gpsStatusText.textContent = 'Buscando señal GPS...';
     runWatchId = navigator.geolocation.watchPosition(
         pos => {
-            setGpsUI(gpsStatusBar,gpsStatusIcon,gpsStatusText,'active');
-            if(runLastPos && isRunning){
-                const d=haversineKm(runLastPos.lat,runLastPos.lon,pos.coords.latitude,pos.coords.longitude);
-                if(d<0.5) runDistKm+=d;
+            setGpsUI(gpsStatusBar, gpsStatusIcon, gpsStatusText, 'active');
+            if (runLastPos && isRunning) {
+                const d = haversineKm(runLastPos.lat, runLastPos.lon, pos.coords.latitude, pos.coords.longitude);
+                if (d < 0.5) runDistKm += d;
             }
-            runLastPos={lat:pos.coords.latitude,lon:pos.coords.longitude};
+            runLastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
         },
-        ()=>setGpsUI(gpsStatusBar,gpsStatusIcon,gpsStatusText,'error'),
-        {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
+        () => setGpsUI(gpsStatusBar, gpsStatusIcon, gpsStatusText, 'error'),
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
 }
 function startRunSession() {
-    isRunning=true;
-    if(btnRunStart){btnRunStart.textContent='EN CURSO...';btnRunStart.classList.add('is-running');}
-    if(btnRunStop) btnRunStop.style.display='block';
-    if(runningTimerEl) runningTimerEl.classList.add('running');
-    if(runMode==='gps') startRunGps();
-    runInterval=setInterval(()=>{
+    isRunning = true;
+    if (btnRunStart) { btnRunStart.textContent = 'EN CURSO...'; btnRunStart.classList.add('is-running'); }
+    if (btnRunStop) btnRunStop.style.display = 'block';
+    if (runningTimerEl) runningTimerEl.classList.add('running');
+    if (runMode === 'gps') startRunGps();
+    runInterval = setInterval(() => {
         runElapsed++;
-        if(runningTimerEl) runningTimerEl.textContent=fmtHMS(runElapsed);
-        if(statDistance)  statDistance.textContent=runDistKm.toFixed(2);
-        if(statCalories)  statCalories.textContent=runKcal(runDistKm);
-        if(runDistKm>0){
-            const pps=runElapsed/runDistKm;
-            if(statPace) statPace.textContent=`${Math.floor(pps/60)}:${String(Math.floor(pps%60)).padStart(2,'0')}`;
+        if (runningTimerEl) runningTimerEl.textContent = fmtHMS(runElapsed);
+        if (statDistance) statDistance.textContent = runDistKm.toFixed(2);
+        if (statCalories) statCalories.textContent = runKcal(runDistKm);
+        if (runDistKm > 0) {
+            const pps = runElapsed / runDistKm;
+            if (statPace) statPace.textContent = `${Math.floor(pps / 60)}:${String(Math.floor(pps % 60)).padStart(2, '0')}`;
         }
-    },1000);
+    }, 1000);
 }
 async function stopRunSession() {
-    if(!isRunning) return;
-    isRunning=false;
-    clearInterval(runInterval); runInterval=null;
+    if (!isRunning) return;
+    isRunning = false;
+    clearInterval(runInterval); runInterval = null;
     stopRunGps();
-    if(runningTimerEl) runningTimerEl.classList.remove('running');
-    if(btnRunStart){btnRunStart.textContent='COMENZAR';btnRunStart.classList.remove('is-running');}
-    if(btnRunStop) btnRunStop.style.display='none';
-    const elapsed=runElapsed;
-    if(elapsed<30){showToast('Sesión muy corta (mín. 30 seg.)','error');resetRunDisplays();return;}
-    let finalDist=runDistKm;
-    if(runMode==='treadmill'){
-        const inp=await showModal('¿Cuántos km corriste en la cinta?','ej: 5.2','number');
-        if(!inp){resetRunDisplays();return;}
-        finalDist=parseFloat(inp.replace(',','.'));
-        if(isNaN(finalDist)||finalDist<=0){showToast('Distancia inválida.','error');resetRunDisplays();return;}
+    if (runningTimerEl) runningTimerEl.classList.remove('running');
+    if (btnRunStart) { btnRunStart.textContent = 'COMENZAR'; btnRunStart.classList.remove('is-running'); }
+    if (btnRunStop) btnRunStop.style.display = 'none';
+    const elapsed = runElapsed;
+    if (elapsed < 30) { showToast('Sesión muy corta (mín. 30 seg.)', 'error'); resetRunDisplays(); return; }
+    let finalDist = runDistKm;
+    if (runMode === 'treadmill') {
+        const inp = await showModal('¿Cuántos km corriste en la cinta?', 'ej: 5.2', 'number');
+        if (!inp) { resetRunDisplays(); return; }
+        finalDist = parseFloat(inp.replace(',', '.'));
+        if (isNaN(finalDist) || finalDist <= 0) { showToast('Distancia inválida.', 'error'); resetRunDisplays(); return; }
     }
-    const pps=finalDist>0?elapsed/finalDist:0;
-    const paceStr=finalDist>0?`${Math.floor(pps/60)}:${String(Math.floor(pps%60)).padStart(2,'0')}`:'--:--';
-    const record={id:Date.now(),date:new Date().toISOString(),tipo:runMode,duracion:elapsed,distancia:Math.round(finalDist*100)/100,ritmo:paceStr,calorias:runKcal(finalDist)};
-    if(!currentSession.cardioLogs) currentSession.cardioLogs=[];
+    const pps = finalDist > 0 ? elapsed / finalDist : 0;
+    const paceStr = finalDist > 0 ? `${Math.floor(pps / 60)}:${String(Math.floor(pps % 60)).padStart(2, '0')}` : '--:--';
+    const record = { id: Date.now(), date: new Date().toISOString(), tipo: runMode, duracion: elapsed, distancia: Math.round(finalDist * 100) / 100, ritmo: paceStr, calorias: runKcal(finalDist) };
+    if (!currentSession.cardioLogs) currentSession.cardioLogs = [];
     currentSession.cardioLogs.unshift(record);
-    const today=new Date().toLocaleDateString('sv-SE');
-    if(!currentSession.trainingDates) currentSession.trainingDates=[];
-    if(!currentSession.trainingDates.includes(today)) currentSession.trainingDates.push(today);
+    const today = new Date().toLocaleDateString('sv-SE');
+    if (!currentSession.trainingDates) currentSession.trainingDates = [];
+    if (!currentSession.trainingDates.includes(today)) currentSession.trainingDates.push(today);
     await syncSessionToFirestore();
-    showToast('✅ Sesión de trote guardada','success');
+    showToast('✅ Sesión de trote guardada', 'success');
     resetRunDisplays();
     renderRunHistory();
 }
 function renderRunHistory() {
-    if(!runningHistoryList) return;
-    const logs=currentSession.cardioLogs||[];
-    if(!logs.length){runningHistoryList.innerHTML='<div class="running-empty-state">Aún no tienes sesiones.<br>¡A trotar! 🏃</div>';return;}
-    runningHistoryList.innerHTML='';
-    logs.forEach((log,idx)=>{
-        const isS=log.tipo==='strava';
-        const mLabel=isS?'Strava':(log.tipo==='gps'?'🛰️ Calle':'🏃 Cinta');
-        const sBadge=isS?'<span class="run-history-strava-badge">⚡ Strava</span>':'';
-        const rName=(isS&&log.nombre)?`<div class="run-name-label">"${log.nombre}"</div>`:'';
-        const bpm=(isS&&log.pulsaciones)?`<div class="run-history-stat"><span class="run-history-stat-value">${Math.round(log.pulsaciones)}</span><span class="run-history-stat-label">bpm ❤️</span></div>`:'';
-        const card=document.createElement('div');
-        card.className='run-history-card'+(isS?' from-strava':'');
-        card.innerHTML=`<div class="run-history-header"><span class="run-history-date">${fmtDate(log.date)}${sBadge}</span><span class="run-history-mode">${mLabel}</span></div>${rName}<div class="run-history-stats"><div class="run-history-stat"><span class="run-history-stat-value">${(log.distancia||0).toFixed(2)}</span><span class="run-history-stat-label">km</span></div><div class="run-history-stat"><span class="run-history-stat-value">${fmtDur(log.duracion||0)}</span><span class="run-history-stat-label">Tiempo</span></div><div class="run-history-stat"><span class="run-history-stat-value">${log.ritmo||'--'}</span><span class="run-history-stat-label">min/km</span></div><div class="run-history-stat"><span class="run-history-stat-value">${log.calorias||0}</span><span class="run-history-stat-label">kcal</span></div>${bpm}</div><button class="run-delete-btn" data-idx="${idx}">−</button>`;
+    if (!runningHistoryList) return;
+    const logs = currentSession.cardioLogs || [];
+    if (!logs.length) { runningHistoryList.innerHTML = '<div class="running-empty-state">Aún no tienes sesiones.<br>¡A trotar! 🏃</div>'; return; }
+    runningHistoryList.innerHTML = '';
+    logs.forEach((log, idx) => {
+        const isS = log.tipo === 'strava';
+        const mLabel = isS ? 'Strava' : (log.tipo === 'gps' ? '🛰️ Calle' : '🏃 Cinta');
+        const sBadge = isS ? '<span class="run-history-strava-badge">⚡ Strava</span>' : '';
+        const rName = (isS && log.nombre) ? `<div class="run-name-label">"${log.nombre}"</div>` : '';
+        const bpm = (isS && log.pulsaciones) ? `<div class="run-history-stat"><span class="run-history-stat-value">${Math.round(log.pulsaciones)}</span><span class="run-history-stat-label">bpm ❤️</span></div>` : '';
+        const card = document.createElement('div');
+        card.className = 'run-history-card' + (isS ? ' from-strava' : '');
+        card.innerHTML = `<div class="run-history-header"><span class="run-history-date">${fmtDate(log.date)}${sBadge}</span><span class="run-history-mode">${mLabel}</span></div>${rName}<div class="run-history-stats"><div class="run-history-stat"><span class="run-history-stat-value">${(log.distancia || 0).toFixed(2)}</span><span class="run-history-stat-label">km</span></div><div class="run-history-stat"><span class="run-history-stat-value">${fmtDur(log.duracion || 0)}</span><span class="run-history-stat-label">Tiempo</span></div><div class="run-history-stat"><span class="run-history-stat-value">${log.ritmo || '--'}</span><span class="run-history-stat-label">min/km</span></div><div class="run-history-stat"><span class="run-history-stat-value">${log.calorias || 0}</span><span class="run-history-stat-label">kcal</span></div>${bpm}</div><button class="run-delete-btn" data-idx="${idx}">−</button>`;
         runningHistoryList.appendChild(card);
     });
-    runningHistoryList.querySelectorAll('.run-delete-btn').forEach(btn=>btn.addEventListener('click',async()=>{
-        const i=parseInt(btn.dataset.idx);
-        if(!await showConfirm('¿Eliminar esta sesión?','Eliminar','#ef4444')) return;
-        currentSession.cardioLogs.splice(i,1);
+    runningHistoryList.querySelectorAll('.run-delete-btn').forEach(btn => btn.addEventListener('click', async () => {
+        const i = parseInt(btn.dataset.idx);
+        if (!await showConfirm('¿Eliminar esta sesión?', 'Eliminar', '#ef4444')) return;
+        currentSession.cardioLogs.splice(i, 1);
         await syncSessionToFirestore();
         renderRunHistory();
-        showToast('🗑 Sesión eliminada','error');
+        showToast('🗑 Sesión eliminada', 'error');
     }));
 }
 // Running listeners
-btnModeGps.addEventListener('click',()=>{
-    if(isRunning) return;
-    runMode='gps';btnModeGps.classList.add('active');btnModeTreadmill.classList.remove('active');
-    if(gpsStatusBar) gpsStatusBar.classList.remove('hidden');
-    if(gpsStatusText) gpsStatusText.textContent='Buscando señal GPS...';
+btnModeGps.addEventListener('click', () => {
+    if (isRunning) return;
+    runMode = 'gps'; btnModeGps.classList.add('active'); btnModeTreadmill.classList.remove('active');
+    if (gpsStatusBar) gpsStatusBar.classList.remove('hidden');
+    if (gpsStatusText) gpsStatusText.textContent = 'Buscando señal GPS...';
 });
-btnModeTreadmill.addEventListener('click',()=>{
-    if(isRunning) return;
-    runMode='treadmill';btnModeTreadmill.classList.add('active');btnModeGps.classList.remove('active');
-    if(gpsStatusBar) gpsStatusBar.classList.add('hidden');
+btnModeTreadmill.addEventListener('click', () => {
+    if (isRunning) return;
+    runMode = 'treadmill'; btnModeTreadmill.classList.add('active'); btnModeGps.classList.remove('active');
+    if (gpsStatusBar) gpsStatusBar.classList.add('hidden');
 });
-btnRunStart.addEventListener('click',()=>{if(!isRunning) startRunSession();});
-btnRunStop.addEventListener('click',()=>stopRunSession());
-btnConnectStrava.addEventListener('click',handleStravaConnect);
-btnStartRunning.addEventListener('click',()=>{
-    resetRunDisplays();renderRunHistory();
-    runMode='gps';btnModeGps.classList.add('active');btnModeTreadmill.classList.remove('active');
-    if(gpsStatusBar){gpsStatusBar.classList.remove('hidden');if(gpsStatusText) gpsStatusText.textContent='Buscando señal GPS...';}
+btnRunStart.addEventListener('click', () => { if (!isRunning) startRunSession(); });
+btnRunStop.addEventListener('click', () => stopRunSession());
+btnConnectStrava.addEventListener('click', handleStravaConnect);
+btnStartRunning.addEventListener('click', () => {
+    resetRunDisplays(); renderRunHistory();
+    runMode = 'gps'; btnModeGps.classList.add('active'); btnModeTreadmill.classList.remove('active');
+    if (gpsStatusBar) { gpsStatusBar.classList.remove('hidden'); if (gpsStatusText) gpsStatusText.textContent = 'Buscando señal GPS...'; }
     updateStravaStatusUI();
     screenHome.classList.add('hidden');
-    if(screenRunning) screenRunning.classList.remove('hidden');
+    if (screenRunning) screenRunning.classList.remove('hidden');
 });
-btnBackRunning.addEventListener('click',()=>{
-    if(isRunning){isRunning=false;clearInterval(runInterval);stopRunGps();resetRunDisplays();}
-    if(screenRunning) screenRunning.classList.add('hidden');
+btnBackRunning.addEventListener('click', () => {
+    if (isRunning) { isRunning = false; clearInterval(runInterval); stopRunGps(); resetRunDisplays(); }
+    if (screenRunning) screenRunning.classList.add('hidden');
     showScreen(screenHome);
 });
 
@@ -2515,175 +2515,167 @@ btnBackRunning.addEventListener('click',()=>{
 // CYCLING
 // ══════════════════════════════════════════════════════════════
 function resetCycleDisplays() {
-    cycleDistKm=0;cycleElapsed=0;cycleLastPos=null;curSpeedKmh=0;
-    if(cyclingTimerEl)    cyclingTimerEl.textContent='00:00';
-    if(cycleStatDistance) cycleStatDistance.textContent='0.00';
-    if(cycleStatSpeed)    cycleStatSpeed.textContent='0.0';
-    if(cycleStatCalories) cycleStatCalories.textContent='0';
+    cycleDistKm = 0; cycleElapsed = 0; cycleLastPos = null; curSpeedKmh = 0;
+    if (cyclingTimerEl) cyclingTimerEl.textContent = '00:00';
+    if (cycleStatDistance) cycleStatDistance.textContent = '0.00';
+    if (cycleStatSpeed) cycleStatSpeed.textContent = '0.0';
+    if (cycleStatCalories) cycleStatCalories.textContent = '0';
 }
 function stopCycleGps() {
-    if(cycleWatchId!==null){navigator.geolocation.clearWatch(cycleWatchId);cycleWatchId=null;}
+    if (cycleWatchId !== null) { navigator.geolocation.clearWatch(cycleWatchId); cycleWatchId = null; }
 }
 function startCycleGps() {
-    if(!navigator.geolocation){setGpsUI(cycleGpsStatusBar,cycleGpsStatusIcon,cycleGpsStatusText,'error');return;}
-    setGpsUI(cycleGpsStatusBar,cycleGpsStatusIcon,cycleGpsStatusText,'idle');
-    if(cycleGpsStatusText) cycleGpsStatusText.textContent='Buscando señal GPS...';
-    let lastT=null;
-    cycleWatchId=navigator.geolocation.watchPosition(
-        pos=>{
-            setGpsUI(cycleGpsStatusBar,cycleGpsStatusIcon,cycleGpsStatusText,'active');
-            const now=Date.now();
-            if(cycleLastPos&&isCycling){
-                const d=haversineKm(cycleLastPos.lat,cycleLastPos.lon,pos.coords.latitude,pos.coords.longitude);
-                if(d<1) cycleDistKm+=d;
-                if(lastT){const dtH=(now-lastT)/3600000;if(dtH>0) curSpeedKmh=Math.round(d/dtH*10)/10;}
+    if (!navigator.geolocation) { setGpsUI(cycleGpsStatusBar, cycleGpsStatusIcon, cycleGpsStatusText, 'error'); return; }
+    setGpsUI(cycleGpsStatusBar, cycleGpsStatusIcon, cycleGpsStatusText, 'idle');
+    if (cycleGpsStatusText) cycleGpsStatusText.textContent = 'Buscando señal GPS...';
+    let lastT = null;
+    cycleWatchId = navigator.geolocation.watchPosition(
+        pos => {
+            setGpsUI(cycleGpsStatusBar, cycleGpsStatusIcon, cycleGpsStatusText, 'active');
+            const now = Date.now();
+            if (cycleLastPos && isCycling) {
+                const d = haversineKm(cycleLastPos.lat, cycleLastPos.lon, pos.coords.latitude, pos.coords.longitude);
+                if (d < 1) cycleDistKm += d;
+                if (lastT) { const dtH = (now - lastT) / 3600000; if (dtH > 0) curSpeedKmh = Math.round(d / dtH * 10) / 10; }
             }
-            cycleLastPos={lat:pos.coords.latitude,lon:pos.coords.longitude};lastT=now;
+            cycleLastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude }; lastT = now;
         },
-        ()=>setGpsUI(cycleGpsStatusBar,cycleGpsStatusIcon,cycleGpsStatusText,'error'),
-        {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
+        () => setGpsUI(cycleGpsStatusBar, cycleGpsStatusIcon, cycleGpsStatusText, 'error'),
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
 }
 function startCycleSession() {
-    isCycling=true;
-    if(btnCycleStart){btnCycleStart.textContent='EN CURSO...';btnCycleStart.classList.add('is-cycling');}
-    if(btnCycleStop) btnCycleStop.style.display='block';
-    if(cyclingTimerEl) cyclingTimerEl.classList.add('cycling');
-    if(cycleMode==='gps') startCycleGps();
-    cycleInterval=setInterval(()=>{
+    isCycling = true;
+    if (btnCycleStart) { btnCycleStart.textContent = 'EN CURSO...'; btnCycleStart.classList.add('is-cycling'); }
+    if (btnCycleStop) btnCycleStop.style.display = 'block';
+    if (cyclingTimerEl) cyclingTimerEl.classList.add('cycling');
+    if (cycleMode === 'gps') startCycleGps();
+    cycleInterval = setInterval(() => {
         cycleElapsed++;
-        if(cyclingTimerEl)    cyclingTimerEl.textContent=fmtMM(cycleElapsed);
-        if(cycleStatDistance) cycleStatDistance.textContent=cycleDistKm.toFixed(2);
-        if(cycleStatSpeed)    cycleStatSpeed.textContent=curSpeedKmh.toFixed(1);
-        if(cycleStatCalories) cycleStatCalories.textContent=cycleKcal(cycleDistKm);
-    },1000);
+        if (cyclingTimerEl) cyclingTimerEl.textContent = fmtMM(cycleElapsed);
+        if (cycleStatDistance) cycleStatDistance.textContent = cycleDistKm.toFixed(2);
+        if (cycleStatSpeed) cycleStatSpeed.textContent = curSpeedKmh.toFixed(1);
+        if (cycleStatCalories) cycleStatCalories.textContent = cycleKcal(cycleDistKm);
+    }, 1000);
 }
 async function stopCycleSession() {
-    if(!isCycling) return;
-    isCycling=false;clearInterval(cycleInterval);cycleInterval=null;
-    if(cyclingTimerEl) cyclingTimerEl.classList.remove('cycling');
-    if(btnCycleStart){btnCycleStart.classList.remove('is-cycling');btnCycleStart.textContent='COMENZAR';}
-    if(btnCycleStop) btnCycleStop.style.display='none';
-    if(cycleMode==='gps') stopCycleGps();
-    const elapsed=cycleElapsed;
-    if(elapsed<30){showToast('Sesión muy corta (mín. 30 seg.)','error');resetCycleDisplays();return;}
-    let finalDist=cycleDistKm,finalSpeed=curSpeedKmh;
-    if(cycleMode==='indoor'){
-        const inp=await showModal('¿Cuántos km recorriste?','ej: 20.5','number');
-        if(!inp){resetCycleDisplays();return;}
-        finalDist=parseFloat(inp.replace(',','.'));
-        if(isNaN(finalDist)||finalDist<=0){showToast('Distancia inválida.','error');resetCycleDisplays();return;}
-        finalSpeed=elapsed>0?Math.round(finalDist/elapsed*3600*10)/10:0;
+    if (!isCycling) return;
+    isCycling = false; clearInterval(cycleInterval); cycleInterval = null;
+    if (cyclingTimerEl) cyclingTimerEl.classList.remove('cycling');
+    if (btnCycleStart) { btnCycleStart.classList.remove('is-cycling'); btnCycleStart.textContent = 'COMENZAR'; }
+    if (btnCycleStop) btnCycleStop.style.display = 'none';
+    if (cycleMode === 'gps') stopCycleGps();
+    const elapsed = cycleElapsed;
+    if (elapsed < 30) { showToast('Sesión muy corta (mín. 30 seg.)', 'error'); resetCycleDisplays(); return; }
+    let finalDist = cycleDistKm, finalSpeed = curSpeedKmh;
+    if (cycleMode === 'indoor') {
+        const inp = await showModal('¿Cuántos km recorriste?', 'ej: 20.5', 'number');
+        if (!inp) { resetCycleDisplays(); return; }
+        finalDist = parseFloat(inp.replace(',', '.'));
+        if (isNaN(finalDist) || finalDist <= 0) { showToast('Distancia inválida.', 'error'); resetCycleDisplays(); return; }
+        finalSpeed = elapsed > 0 ? Math.round(finalDist / elapsed * 3600 * 10) / 10 : 0;
     }
-    const record={id:Date.now(),date:new Date().toISOString(),tipo:cycleMode,duracion:elapsed,distancia:Math.round(finalDist*100)/100,velocidad:finalSpeed,calorias:cycleKcal(finalDist)};
-    if(!currentSession.cyclingLogs) currentSession.cyclingLogs=[];
+    const record = { id: Date.now(), date: new Date().toISOString(), tipo: cycleMode, duracion: elapsed, distancia: Math.round(finalDist * 100) / 100, velocidad: finalSpeed, calorias: cycleKcal(finalDist) };
+    if (!currentSession.cyclingLogs) currentSession.cyclingLogs = [];
     currentSession.cyclingLogs.unshift(record);
-    const today=new Date().toLocaleDateString('sv-SE');
-    if(!currentSession.trainingDates) currentSession.trainingDates=[];
-    if(!currentSession.trainingDates.includes(today)) currentSession.trainingDates.push(today);
+    const today = new Date().toLocaleDateString('sv-SE');
+    if (!currentSession.trainingDates) currentSession.trainingDates = [];
+    if (!currentSession.trainingDates.includes(today)) currentSession.trainingDates.push(today);
     await syncSessionToFirestore();
-    showToast('✅ Sesión de bicicleta guardada','success');
-    resetCycleDisplays();renderCycleHistory();
+    showToast('✅ Sesión de bicicleta guardada', 'success');
+    resetCycleDisplays(); renderCycleHistory();
 }
 function renderCycleHistory() {
-    if(!cyclingHistoryList) return;
-    const logs=currentSession.cyclingLogs||[];
-    if(!logs.length){cyclingHistoryList.innerHTML='<div class="cycling-empty-state">Aún no tienes sesiones.<br>¡A pedalear! 🚴</div>';return;}
-    cyclingHistoryList.innerHTML='';
-    logs.forEach((log,idx)=>{
-        const isS=log.tipo==='strava';
-        const mLabel=isS?'Strava':(log.tipo==='gps'?'🛰️ Aire Libre':'🏠 Indoor');
-        const sBadge=isS?'<span class="run-history-strava-badge">⚡ Strava</span>':'';
-        const rName=(isS&&log.nombre)?`<div class="run-name-label">"${log.nombre}"</div>`:'';
-        const bpm=(isS&&log.pulsaciones)?`<div class="cycle-history-stat"><span class="cycle-history-stat-value">${Math.round(log.pulsaciones)}</span><span class="cycle-history-stat-label">bpm ❤️</span></div>`:'';
-        const elev=(isS&&log.elevacion>0)?`<div class="cycle-history-stat"><span class="cycle-history-stat-value">${Math.round(log.elevacion)}</span><span class="cycle-history-stat-label">m ↑</span></div>`:'';
-        const card=document.createElement('div');
-        card.className='cycle-history-card'+(isS?' from-strava':'');
-        card.innerHTML=`<div class="cycle-history-header"><span class="cycle-history-date">${fmtDate(log.date)}${sBadge}</span><span class="cycle-history-mode">${mLabel}</span></div>${rName}<div class="cycle-history-stats"><div class="cycle-history-stat"><span class="cycle-history-stat-value">${(log.distancia||0).toFixed(2)}</span><span class="cycle-history-stat-label">km</span></div><div class="cycle-history-stat"><span class="cycle-history-stat-value">${fmtDur(log.duracion||0)}</span><span class="cycle-history-stat-label">Tiempo</span></div><div class="cycle-history-stat"><span class="cycle-history-stat-value">${log.velocidad?log.velocidad.toFixed(1):'—'}</span><span class="cycle-history-stat-label">km/h</span></div><div class="cycle-history-stat"><span class="cycle-history-stat-value">${log.calorias||0}</span><span class="cycle-history-stat-label">kcal</span></div>${bpm}${elev}</div><button class="cycle-delete-btn" data-idx="${idx}">−</button>`;
+    if (!cyclingHistoryList) return;
+    const logs = currentSession.cyclingLogs || [];
+    if (!logs.length) { cyclingHistoryList.innerHTML = '<div class="cycling-empty-state">Aún no tienes sesiones.<br>¡A pedalear! 🚴</div>'; return; }
+    cyclingHistoryList.innerHTML = '';
+    logs.forEach((log, idx) => {
+        const isS = log.tipo === 'strava';
+        const mLabel = isS ? 'Strava' : (log.tipo === 'gps' ? '🛰️ Aire Libre' : '🏠 Indoor');
+        const sBadge = isS ? '<span class="run-history-strava-badge">⚡ Strava</span>' : '';
+        const rName = (isS && log.nombre) ? `<div class="run-name-label">"${log.nombre}"</div>` : '';
+        const bpm = (isS && log.pulsaciones) ? `<div class="cycle-history-stat"><span class="cycle-history-stat-value">${Math.round(log.pulsaciones)}</span><span class="cycle-history-stat-label">bpm ❤️</span></div>` : '';
+        const elev = (isS && log.elevacion > 0) ? `<div class="cycle-history-stat"><span class="cycle-history-stat-value">${Math.round(log.elevacion)}</span><span class="cycle-history-stat-label">m ↑</span></div>` : '';
+        const card = document.createElement('div');
+        card.className = 'cycle-history-card' + (isS ? ' from-strava' : '');
+        card.innerHTML = `<div class="cycle-history-header"><span class="cycle-history-date">${fmtDate(log.date)}${sBadge}</span><span class="cycle-history-mode">${mLabel}</span></div>${rName}<div class="cycle-history-stats"><div class="cycle-history-stat"><span class="cycle-history-stat-value">${(log.distancia || 0).toFixed(2)}</span><span class="cycle-history-stat-label">km</span></div><div class="cycle-history-stat"><span class="cycle-history-stat-value">${fmtDur(log.duracion || 0)}</span><span class="cycle-history-stat-label">Tiempo</span></div><div class="cycle-history-stat"><span class="cycle-history-stat-value">${log.velocidad ? log.velocidad.toFixed(1) : '—'}</span><span class="cycle-history-stat-label">km/h</span></div><div class="cycle-history-stat"><span class="cycle-history-stat-value">${log.calorias || 0}</span><span class="cycle-history-stat-label">kcal</span></div>${bpm}${elev}</div><button class="cycle-delete-btn" data-idx="${idx}">−</button>`;
         cyclingHistoryList.appendChild(card);
     });
-    cyclingHistoryList.querySelectorAll('.cycle-delete-btn').forEach(btn=>btn.addEventListener('click',async()=>{
-        const i=parseInt(btn.dataset.idx);
-        if(!await showConfirm('¿Eliminar esta sesión?','Eliminar','#ef4444')) return;
-        currentSession.cyclingLogs.splice(i,1);
+    cyclingHistoryList.querySelectorAll('.cycle-delete-btn').forEach(btn => btn.addEventListener('click', async () => {
+        const i = parseInt(btn.dataset.idx);
+        if (!await showConfirm('¿Eliminar esta sesión?', 'Eliminar', '#ef4444')) return;
+        currentSession.cyclingLogs.splice(i, 1);
         await syncSessionToFirestore();
         renderCycleHistory();
-        showToast('🗑 Sesión eliminada','error');
+        showToast('🗑 Sesión eliminada', 'error');
     }));
 }
 // Cycling listeners
-btnCycleModeGps.addEventListener('click',()=>{
-    if(isCycling) return;
-    cycleMode='gps';btnCycleModeGps.classList.add('active');btnCycleModeIndoor.classList.remove('active');
-    if(cycleGpsStatusBar) cycleGpsStatusBar.classList.remove('hidden');
-    if(cycleGpsStatusText) cycleGpsStatusText.textContent='Buscando señal GPS...';
+btnCycleModeGps.addEventListener('click', () => {
+    if (isCycling) return;
+    cycleMode = 'gps'; btnCycleModeGps.classList.add('active'); btnCycleModeIndoor.classList.remove('active');
+    if (cycleGpsStatusBar) cycleGpsStatusBar.classList.remove('hidden');
+    if (cycleGpsStatusText) cycleGpsStatusText.textContent = 'Buscando señal GPS...';
 });
-btnCycleModeIndoor.addEventListener('click',()=>{
-    if(isCycling) return;
-    cycleMode='indoor';btnCycleModeIndoor.classList.add('active');btnCycleModeGps.classList.remove('active');
-    if(cycleGpsStatusBar) cycleGpsStatusBar.classList.add('hidden');
+btnCycleModeIndoor.addEventListener('click', () => {
+    if (isCycling) return;
+    cycleMode = 'indoor'; btnCycleModeIndoor.classList.add('active'); btnCycleModeGps.classList.remove('active');
+    if (cycleGpsStatusBar) cycleGpsStatusBar.classList.add('hidden');
 });
-btnCycleStart.addEventListener('click',()=>{if(!isCycling) startCycleSession();});
-btnCycleStop.addEventListener('click',()=>stopCycleSession());
-btnConnectStravaCycling.addEventListener('click',handleStravaConnect);
-btnStartCycling.addEventListener('click',()=>{
-    resetCycleDisplays();renderCycleHistory();
-    cycleMode='gps';btnCycleModeGps.classList.add('active');btnCycleModeIndoor.classList.remove('active');
-    if(cycleGpsStatusBar){cycleGpsStatusBar.classList.remove('hidden');if(cycleGpsStatusText) cycleGpsStatusText.textContent='Buscando señal GPS...';}
+btnCycleStart.addEventListener('click', () => { if (!isCycling) startCycleSession(); });
+btnCycleStop.addEventListener('click', () => stopCycleSession());
+btnConnectStravaCycling.addEventListener('click', handleStravaConnect);
+btnStartCycling.addEventListener('click', () => {
+    resetCycleDisplays(); renderCycleHistory();
+    cycleMode = 'gps'; btnCycleModeGps.classList.add('active'); btnCycleModeIndoor.classList.remove('active');
+    if (cycleGpsStatusBar) { cycleGpsStatusBar.classList.remove('hidden'); if (cycleGpsStatusText) cycleGpsStatusText.textContent = 'Buscando señal GPS...'; }
     updateStravaStatusUI();
     screenHome.classList.add('hidden');
-    if(screenCycling) screenCycling.classList.remove('hidden');
+    if (screenCycling) screenCycling.classList.remove('hidden');
 });
-btnBackCycling.addEventListener('click',()=>{
-    if(isCycling){isCycling=false;clearInterval(cycleInterval);stopCycleGps();resetCycleDisplays();}
-    if(screenCycling) screenCycling.classList.add('hidden');
+btnBackCycling.addEventListener('click', () => {
+    if (isCycling) { isCycling = false; clearInterval(cycleInterval); stopCycleGps(); resetCycleDisplays(); }
+    if (screenCycling) screenCycling.classList.add('hidden');
     showScreen(screenHome);
 });
 
 // ── Init Strava callback check ───────────────────────────────
 handleStravaCallback();
 async function handleStravaCallback() {
-    const params=new URLSearchParams(window.location.search);
-    const code=params.get('code');
-    if(!code) return;
-    window.history.replaceState({},'',window.location.pathname);
-    
-    const clientId = '245269';
-    const clientSecret = '0258735d5aebfe3e64c521ed6812d0280d7ee6f3';
-    
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code) return;
+    window.history.replaceState({}, '', window.location.pathname);
+
     showToast('Conectando con Strava...', 'info');
-    
+
     try {
-        const response = await fetch('https://www.strava.com/oauth/token', {
+        const response = await fetch('https://strava-oauth-proxy.felipetoro-c.workers.dev/strava/token', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                client_id: clientId,
-                client_secret: clientSecret,
-                code: code,
-                grant_type: 'authorization_code'
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: code })
         });
-        
+
+        if (!response.ok) throw new Error('Error en el Worker');
+
         const data = await response.json();
-        
+
         if (data.access_token) {
             localStorage.setItem('strava_tokens', JSON.stringify({
                 access_token: data.access_token,
                 refresh_token: data.refresh_token,
-                expires_at: data.expires_at
+                expires_at: data.expires_at,
+                athlete: data.athlete
             }));
             updateStravaStatusUI();
-            showToast('✅ Strava conectado con éxito', 'success');
+            showToast('¡Strava conectado exitosamente!', 'success');
         } else {
-            console.error('Error de Strava:', data);
-            showToast('Error al conectar con Strava', 'error');
+            throw new Error(data.error || 'No se recibió token');
         }
-    } catch (error) {
-        console.error('Error al intercambiar token de Strava:', error);
-        showToast('Error de conexión con Strava', 'error');
+    } catch (err) {
+        console.error('Strava callback error:', err);
+        showToast('Error al conectar con Strava: ' + err.message, 'error');
     }
 }
 
@@ -2698,7 +2690,7 @@ btnLogin.addEventListener('click', async () => {
     try {
         // Verificar si el correo ya tiene métodos de inicio de sesión
         const methods = await fetchSignInMethodsForEmail(auth, email);
-        
+
         if (methods.length > 0) {
             // El usuario ya existe, pedir contraseña para entrar
             const password = await showModal('Ingresa tu contraseña para entrar:', 'Contraseña', 'password');
