@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Tracker Pro</title>
+    <!-- Muta versión de cache para forzar recarga -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=5.7">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="splash-screen">
+        <div class="splash-content">
+            <img src="logo.png" alt="Gym Tracker Logo" class="splash-logo">
+            <div class="splash-loader">
+                <span>Iniciando</span>
+                <div class="dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-container">
+
+        <!-- Screen 0: Login -->
+        <div id="screen-login" class="screen active">
+            <div class="screen-header">
+                <img src="logo.png" alt="Gym Tracker Logo" class="app-logo">
+            </div>
+            <div class="screen-content">
+                <p style="margin-bottom: 1rem;">Ingresa tu correo para comenzar</p>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div class="input-field">
+                        <label>Correo Electrónico</label>
+                        <input type="email" id="input-email" placeholder="tu@correo.com" autocomplete="email">
+                    </div>
+                    <button id="btn-login" class="btn-primary">Entrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 1: Start Day -->
+        <div id="screen-home" class="screen hidden">
+            <div class="screen-header">
+                <img src="logo.png" alt="Gym Tracker Logo" class="app-logo">
+            </div>
+            <div class="screen-content">
+                <p id="welcome-msg" style="font-size:0.85rem; color: rgba(255,255,255,0.5); margin-bottom:0.25rem;"></p>
+                <p>Registra tu entrenamiento de hoy</p>
+                <button id="btn-start-day" class="btn-primary">Iniciar Entrenamiento</button>
+                <button id="btn-start-running" class="btn-running-home">🏃 Registrar Trote</button>
+                <button id="btn-start-cycling" class="btn-cycling-home">🚴 Registrar Bicicleta</button>
+                <button id="btn-logout" class="btn-icon btn-logout-home">Cerrar sesión</button>
+
+                <div id="global-progress-container" class="chart-container" style="margin-top: 2rem; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h3 id="global-chart-title" style="font-size: 0.9rem; margin: 0; opacity: 0.8;">Carga Total (kg)
+                        </h3>
+                        <div class="chart-tabs"
+                            style="margin: 0; padding: 0.15rem; background: rgba(255,255,255,0.05); width: auto;">
+                            <button id="btn-global-week" class="chart-tab active"
+                                style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Sem</button>
+                            <button id="btn-global-month" class="chart-tab"
+                                style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Mes</button>
+                        </div>
+                    </div>
+                    <div style="height: 180px;">
+                        <canvas id="globalChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Cardio Volume Chart -->
+                <div id="cardio-progress-container" class="chart-container" style="margin-top: 1rem; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h3 id="cardio-chart-title" style="font-size: 0.9rem; margin: 0; opacity: 0.8;">Volumen Cardio (km)</h3>
+                        <div class="chart-tabs" style="margin: 0; padding: 0.15rem; background: rgba(255,255,255,0.05); width: auto;">
+                            <button id="btn-cardio-week" class="chart-tab active" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Sem</button>
+                            <button id="btn-cardio-month" class="chart-tab" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Mes</button>
+                        </div>
+                    </div>
+                    <!-- Legend -->
+                    <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.7rem; color: #34d399; display: flex; align-items: center; gap: 4px;">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#34d399;display:inline-block;"></span> Trote
+                        </span>
+                        <span style="font-size: 0.7rem; color: #06b6d4; display: flex; align-items: center; gap: 4px;">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#06b6d4;display:inline-block;"></span> Bicicleta
+                        </span>
+                    </div>
+                    <div style="height: 180px;">
+                        <canvas id="cardioChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="consistency-tracker" class="consistency-container"></div>
+            </div>
+        </div>
+
+        <!-- Screen 1.5: Select Day -->
+        <div id="screen-select-day" class="screen hidden" style="position: relative;">
+            <div class="screen-header">
+                <button id="btn-back-home" class="btn-icon">← Volver al Inicio</button>
+            </div>
+            <div class="screen-content">
+                <h2>Selecciona tu Día</h2>
+                <div class="exercise-list" id="day-list">
+                    <!-- populated by JS -->
+                </div>
+            </div>
+            <button id="btn-add-day" class="fab-btn">+</button>
+        </div>
+
+        <!-- Screen 2: Select Exercise -->
+        <div id="screen-exercises" class="screen hidden" style="position: relative;">
+            <div class="screen-header">
+                <button id="btn-back-days" class="btn-icon">← Volver a Días</button>
+            </div>
+            <div class="screen-content">
+                <h2 id="current-day-title">Ejercicios</h2>
+                <div class="exercise-list" id="exercise-list">
+                    <!-- populated by JS -->
+                </div>
+            </div>
+            <button id="btn-add-exercise" class="fab-btn">+</button>
+        </div>
+
+        <!-- Screen 3: Active Exercise Log -->
+        <div id="screen-active-exercise" class="screen hidden">
+            <div class="screen-header">
+                <button id="btn-back-exercises" class="btn-icon">← Volver</button>
+            </div>
+            <div class="screen-content">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                    <h2 id="current-exercise-name" style="margin-bottom: 0;">Ejercicio</h2>
+                    <button id="btn-show-chart" class="fab-btn"
+                        style="position: relative; top: 0; right: 0; width: 40px; height: 40px; font-size: 1.2rem;">📊</button>
+                </div>
+
+                <div class="exercise-description" id="exercise-description" style="position: relative;">
+                    <button id="btn-edit-desc" class="edit-btn">✎</button>
+                    <div class="desc-item">
+                        <span class="desc-label">Trabajo:</span>
+                        <span class="desc-value" id="desc-trabajo">-</span>
+                    </div>
+                    <div class="desc-item">
+                        <span class="desc-label">Intensidad:</span>
+                        <span class="desc-value" id="desc-intensidad">-</span>
+                    </div>
+                </div>
+
+                <div class="week-navigation">
+                    <button id="btn-prev-week" class="btn-icon">❮</button>
+                    <h3 id="current-week-label" class="week-label">Semana 1</h3>
+                    <button id="btn-next-week" class="btn-icon">❯</button>
+                    <button id="btn-add-week" class="week-nav-btn" style="display:none">+</button>
+                </div>
+
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Repeticiones</label>
+                        <input type="number" id="input-reps" placeholder="0" inputmode="numeric">
+                    </div>
+                    <div class="input-field">
+                        <label>Kilos</label>
+                        <input type="text" id="input-weight" placeholder="0.0" inputmode="decimal">
+                    </div>
+                </div>
+
+                <button id="btn-save-set" class="btn-primary" style="margin-bottom: 1rem;">Guardar Serie</button>
+
+                <ul class="sets-log" id="sets-list">
+                    <!-- populated by JS -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- Screen 4: Chart View -->
+        <div id="screen-chart" class="screen hidden">
+            <div class="screen-header">
+                <button id="btn-back-active-exercise" class="btn-icon">← Volver al Ejercicio</button>
+            </div>
+            <div class="screen-content">
+                <h2 style="margin-bottom: 1rem;">Análisis de Progreso</h2>
+
+                <div class="chart-tabs">
+                    <button id="btn-tab-volume" class="chart-tab active">Volumen</button>
+                    <button id="btn-tab-1rm" class="chart-tab">Fuerza 1RM</button>
+                </div>
+
+                <div class="chart-tabs" style="margin-top: 0.5rem; background: rgba(255, 255, 255, 0.05);">
+                    <button id="btn-tab-week" class="chart-tab active">Semana</button>
+                    <button id="btn-tab-month" class="chart-tab">Mes</button>
+                </div>
+
+                <div class="chart-container" id="volume-chart-container" style="display: none; flex: 1; min-height: 300px;">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+                <p id="no-chart-data-msg" style="display: none; text-align: center; margin-top: 2rem;">Aún no hay
+                    suficientes datos para graficar.</p>
+            </div>
+        </div>
+
+        <!-- Screen 5: Running Session -->
+        <div id="screen-running" class="screen hidden" style="position: relative;">
+            <div class="screen-header">
+                <button id="btn-back-running" class="btn-icon">← Volver al Inicio</button>
+            </div>
+            <div class="screen-content">
+                <h2 style="margin-bottom: 0.75rem;">🏃 Sesión de Trote</h2>
+
+                <!-- Strava Connection Bar -->
+                <div id="strava-status" class="strava-status-bar">
+                    <div class="strava-status-left">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Strava_Logo.svg/120px-Strava_Logo.svg.png" alt="Strava" class="strava-logo-img">
+                        <span id="strava-status-text">Conecta para sincronizar automáticamente</span>
+                    </div>
+                    <button id="btn-connect-strava" class="btn-strava-connect">Conectar</button>
+                </div>
+
+
+                <div class="running-mode-tabs">
+                    <button id="btn-mode-gps" class="running-mode-tab active">🛰️ Calle (GPS)</button>
+                    <button id="btn-mode-treadmill" class="running-mode-tab">🏃 Máquina</button>
+                </div>
+
+                <!-- GPS Mode Notice -->
+                <div id="gps-status-bar" class="gps-status-bar">
+                    <span id="gps-status-icon">📡</span>
+                    <span id="gps-status-text">Buscando señal GPS...</span>
+                </div>
+
+                <!-- Timer Display -->
+                <div class="running-timer-card">
+                    <div class="running-timer" id="running-timer">00:00:00</div>
+                    <div class="running-stats-grid">
+                        <div class="running-stat">
+                            <span class="running-stat-value" id="stat-distance">0.00</span>
+                            <span class="running-stat-label">km</span>
+                        </div>
+                        <div class="running-stat">
+                            <span class="running-stat-value" id="stat-pace">--:--</span>
+                            <span class="running-stat-label">min/km</span>
+                        </div>
+                        <div class="running-stat">
+                            <span class="running-stat-value" id="stat-calories">0</span>
+                            <span class="running-stat-label">kcal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div id="running-controls">
+                    <button id="btn-run-start" class="btn-run-action btn-run-start">COMENZAR</button>
+                    <button id="btn-run-stop" class="btn-run-action btn-run-stop" style="display:none;">DETENER Y GUARDAR</button>
+                </div>
+
+                <!-- Running History -->
+                <div class="running-history-container">
+                    <h3 class="running-history-title">Historial de Sesiones</h3>
+                    <div id="running-history-list" class="running-history-list">
+                        <!-- populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 6: Cycling Session -->
+        <div id="screen-cycling" class="screen hidden" style="position: relative;">
+            <div class="screen-header">
+                <button id="btn-back-cycling" class="btn-icon">← Volver al Inicio</button>
+            </div>
+            <div class="screen-content">
+                <h2 style="margin-bottom: 0.75rem;">🚴 Sesión de Bicicleta</h2>
+
+                <!-- Strava Connection Bar (cycling) -->
+                <div id="strava-status-cycling" class="strava-status-bar">
+                    <div class="strava-status-left">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Strava_Logo.svg/120px-Strava_Logo.svg.png" alt="Strava" class="strava-logo-img">
+                        <span id="strava-status-text-cycling">Conecta para sincronizar automáticamente</span>
+                    </div>
+                    <button id="btn-connect-strava-cycling" class="btn-strava-connect">Conectar</button>
+                </div>
+
+                <!-- Mode Selector -->
+                <div class="cycling-mode-tabs">
+                    <button id="btn-cycle-mode-gps" class="cycling-mode-tab active">🛰️ Aire Libre</button>
+                    <button id="btn-cycle-mode-indoor" class="cycling-mode-tab">🏠 Indoor</button>
+                </div>
+
+                <!-- GPS Mode Notice -->
+                <div id="cycle-gps-status-bar" class="gps-status-bar">
+                    <span id="cycle-gps-status-icon">📡</span>
+                    <span id="cycle-gps-status-text">Buscando señal GPS...</span>
+                </div>
+
+                <!-- Timer Display -->
+                <div class="cycling-timer-card">
+                    <div class="cycling-timer" id="cycling-timer">00:00</div>
+                    <div class="cycling-stats-grid">
+                        <div class="cycling-stat">
+                            <span class="cycling-stat-value" id="cycle-stat-distance">0.00</span>
+                            <span class="cycling-stat-label">km</span>
+                        </div>
+                        <div class="cycling-stat">
+                            <span class="cycling-stat-value" id="cycle-stat-speed">0.0</span>
+                            <span class="cycling-stat-label">km/h</span>
+                        </div>
+                        <div class="cycling-stat">
+                            <span class="cycling-stat-value" id="cycle-stat-calories">0</span>
+                            <span class="cycling-stat-label">kcal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div id="cycling-controls">
+                    <button id="btn-cycle-start" class="btn-cycle-action btn-cycle-start">COMENZAR</button>
+                    <button id="btn-cycle-stop" class="btn-cycle-action btn-cycle-stop" style="display:none;">DETENER Y GUARDAR</button>
+                </div>
+
+                <!-- Cycling History -->
+                <div class="cycling-history-container">
+                    <h3 class="cycling-history-title">Historial de Sesiones</h3>
+                    <div id="cycling-history-list" class="cycling-history-list">
+                        <!-- populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+</div>
+
+    <!-- Custom Modal Prompt -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal-box">
+            <p id="modal-label" class="modal-label"></p>
+            <input type="text" id="modal-input" class="modal-input" placeholder="">
+            <div class="modal-actions">
+                <button id="modal-cancel" class="btn-secondary">Cancelar</button>
+                <button id="modal-confirm" class="btn-primary">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Analysis Modal -->
+    <div id="ai-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-box"
+            style="text-align: left; padding: 1.5rem; max-width: 400px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(139, 92, 246, 0.3); box-shadow: 0 10px 40px rgba(139, 92, 246, 0.2);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;">
+                <span style="font-size: 1.8rem; line-height: 1;">🤖</span>
+                <h3 style="margin: 0; color: #fff;">Análisis de Progreso</h3>
+            </div>
+            <div id="ai-analysis-content"
+                style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); opacity: 0.9;">
+                <!-- Analysis results -->
+            </div>
+            <button id="btn-close-ai" class="btn-primary"
+                style="margin-top: 1.5rem; width: 100%; background: linear-gradient(135deg, #8b5cf6, #3b82f6);">Entendido</button>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Background effects -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <script type="module" src="app.js?v=4.5"></script>
+</body>
+
+</html>
