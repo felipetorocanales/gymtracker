@@ -10,7 +10,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=5.7">
+    <link rel="stylesheet" href="style.css?v=5.8">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -73,6 +73,10 @@
                             <button id="btn-global-month" class="chart-tab"
                                 style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Mes</button>
                         </div>
+                    </div>
+                    <!-- Day filter pills -->
+                    <div id="global-day-filters" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem;">
+                        <!-- populated by JS -->
                     </div>
                     <div style="height: 180px;">
                         <canvas id="globalChart"></canvas>
@@ -376,7 +380,7 @@
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
 
-    <script type="module" src="app.js?v=4.5"></script>
+    <script type="module" src="app.js?v=4.6"></script>
 </body>
 
 </html>

@@ -37,6 +37,7 @@ let cardioTimeUnit = 'week';
 let currentChartType = 'volume';
 let currentTimeUnit = 'week';
 let globalTimeUnit = 'week';
+let globalDayFilter = new Set(); // empty = all days selected
 let isNavigatingFromAI = false;
 let lastWeekAnalyzed = null;
 
@@ -256,6 +257,7 @@ function showScreen(screen) {
 
     if (screen === screenHome) {
         renderConsistencyTracker();
+        renderGlobalDayFilters();
         renderGlobalProgressChart();
         renderCardioChart();
     }
@@ -1989,12 +1991,31 @@ function renderGlobalProgressChart() {
         return weekMon.toLocaleString('es-ES', { month: 'short', year: '2-digit' });
     };
 
+    // Build the set of exercises belonging to the filtered days.
+    // If globalDayFilter is empty, include ALL exercises (original behavior).
+    let filteredExerciseNames = null; // null = all
+    if (globalDayFilter.size > 0) {
+        filteredExerciseNames = new Set();
+        globalDayFilter.forEach(dayId => {
+            const exs = currentSession.customExercises?.[dayId] || [];
+            exs.forEach(ex => filteredExerciseNames.add(ex));
+        });
+    }
+
+    const getExerciseLogs = () => {
+        const allLogs = currentSession.logs || {};
+        if (!filteredExerciseNames) return Object.values(allLogs);
+        return Object.entries(allLogs)
+            .filter(([name]) => filteredExerciseNames.has(name))
+            .map(([, v]) => v);
+    };
+
     if (globalTimeUnit === 'week') {
         globalChartTitle.textContent = 'Carga Total Semanal (kg)';
         for (let w = 1; w <= maxWeek; w++) {
             labels.push(`Sem ${w}`);
             let weeklyTotal = 0;
-            Object.values(currentSession.logs || {}).forEach(exLogs => {
+            getExerciseLogs().forEach(exLogs => {
                 const weekLogs = exLogs[w] || [];
                 weekLogs.forEach(log => {
                     weeklyTotal += (Number(log.reps) * Number(log.weight));
@@ -2008,7 +2029,7 @@ function renderGlobalProgressChart() {
         const monthlyTotals = {};
         for (let w = 1; w <= maxWeek; w++) {
             let weeklyTotal = 0;
-            Object.values(currentSession.logs || {}).forEach(exLogs => {
+            getExerciseLogs().forEach(exLogs => {
                 const weekLogs = exLogs[w] || [];
                 weekLogs.forEach(log => {
                     weeklyTotal += (Number(log.reps) * Number(log.weight));
@@ -2125,6 +2146,51 @@ function renderGlobalProgressChart() {
         }
     });
 }
+
+// ── Day-filter pills for the global chart ──────────────────────────────────
+function renderGlobalDayFilters() {
+    const container = document.getElementById('global-day-filters');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const days = currentSession.days || [];
+    if (days.length === 0) return;
+
+    // "Todos" pill
+    const allPill = document.createElement('button');
+    allPill.className = 'day-filter-pill' + (globalDayFilter.size === 0 ? ' active' : '');
+    allPill.textContent = 'Todos';
+    allPill.addEventListener('click', () => {
+        globalDayFilter.clear();
+        renderGlobalDayFilters();
+        renderGlobalProgressChart();
+    });
+    container.appendChild(allPill);
+
+    // One pill per day
+    days.forEach((dayObj, idx) => {
+        const pill = document.createElement('button');
+        const isActive = globalDayFilter.has(dayObj.id);
+        pill.className = 'day-filter-pill' + (isActive ? ' active' : '');
+        pill.textContent = `Día ${idx + 1}`;
+        pill.title = dayObj.name;
+        pill.addEventListener('click', () => {
+            if (globalDayFilter.has(dayObj.id)) {
+                globalDayFilter.delete(dayObj.id);
+            } else {
+                globalDayFilter.add(dayObj.id);
+            }
+            // If nothing is selected, reset to "Todos"
+            if (globalDayFilter.size === 0) {
+                // stays as "all"
+            }
+            renderGlobalDayFilters();
+            renderGlobalProgressChart();
+        });
+        container.appendChild(pill);
+    });
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 function renderCardioChart() {
     const container = document.getElementById('cardio-progress-container');
