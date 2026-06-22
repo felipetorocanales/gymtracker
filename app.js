@@ -1526,7 +1526,48 @@ function saveSet() {
     inputReps.focus();
 }
 
+function renderLastSessionStats() {
+    const cardEl = document.getElementById('last-session-card');
+    const weekEl = document.getElementById('last-session-week');
+    const contentEl = document.getElementById('last-session-content');
+    if (!cardEl || !weekEl || !contentEl) return;
+
+    if (!activeExercise || !currentSession.logs || !currentSession.logs[activeExercise]) {
+        cardEl.style.display = 'none';
+        return;
+    }
+
+    const exLogs = currentSession.logs[activeExercise];
+    let foundWeek = null;
+    let foundLogs = [];
+
+    // Buscar la última semana con datos antes de currentWeek
+    for (let w = currentWeek - 1; w >= 1; w--) {
+        const weekLogs = exLogs[w];
+        if (weekLogs && weekLogs.length > 0) {
+            foundWeek = w;
+            foundLogs = weekLogs;
+            break;
+        }
+    }
+
+    if (foundWeek !== null && foundLogs.length > 0) {
+        weekEl.textContent = foundWeek;
+        contentEl.innerHTML = '';
+        foundLogs.forEach((log, index) => {
+            const chip = document.createElement('span');
+            chip.className = 'last-session-chip';
+            chip.textContent = `S${index + 1}: ${log.reps} x ${log.weight} kg`;
+            contentEl.appendChild(chip);
+        });
+        cardEl.style.display = 'flex';
+    } else {
+        cardEl.style.display = 'none';
+    }
+}
+
 function renderSets() {
+    renderLastSessionStats();
     setsListEl.innerHTML = '';
     const logs = currentSession.logs[activeExercise][currentWeek] || [];
 

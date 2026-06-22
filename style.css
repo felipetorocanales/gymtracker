@@ -888,6 +888,42 @@ p {
     box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
 }
 
+/* Last session stats card */
+.last-session-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.last-session-title {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.last-session-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.last-session-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
 
