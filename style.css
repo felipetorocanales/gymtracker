@@ -89,6 +89,94 @@ body {
     display: flex;
     flex-direction: column;
     z-index: 10;
+    position: relative;
+}
+
+/* Persistent Workout Timer Bar */
+.workout-timer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.25);
+    border-radius: 16px;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+    animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.workout-timer-bar.hidden {
+    display: none !important;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.timer-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.timer-badge-icon {
+    font-size: 1.2rem;
+    animation: pulseIcon 2s infinite ease-in-out;
+}
+
+@keyframes pulseIcon {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+.timer-text-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.timer-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.timer-time {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #60a5fa;
+    font-family: monospace, sans-serif;
+    letter-spacing: 0.05em;
+}
+
+.btn-stop-workout {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 0.4rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-stop-workout:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
 }
 
 .screen {

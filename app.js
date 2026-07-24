@@ -41,6 +41,9 @@ let globalDayFilter = new Set(); // empty = all days selected
 let isNavigatingFromAI = false;
 let lastWeekAnalyzed = null;
 
+// Workout Timer State
+let workoutTimerInterval = null;
+
 // DOM Elements
 const splashScreen = document.getElementById('splash-screen');
 const screenLogin = document.getElementById('screen-login');
@@ -49,6 +52,10 @@ const screenSelectDay = document.getElementById('screen-select-day');
 const screenExercises = document.getElementById('screen-exercises');
 const screenActiveExercise = document.getElementById('screen-active-exercise');
 const screenChart = document.getElementById('screen-chart');
+
+const workoutTimerBar = document.getElementById('workout-timer-bar');
+const workoutTimerDisplay = document.getElementById('workout-timer-display');
+const btnStopWorkout = document.getElementById('btn-stop-workout');
 
 const btnLogin = document.getElementById('btn-login');
 const btnLogout = document.getElementById('btn-logout');
@@ -245,6 +252,63 @@ function showConfirm(labelHtml, confirmLabel = 'Eliminar', confirmColor = '#ef44
     });
 }
 
+// Workout Timer Logic
+function startWorkoutTimer(startTimeMs = Date.now()) {
+    if (workoutTimerInterval) clearInterval(workoutTimerInterval);
+
+    localStorage.setItem('workout_start_time', startTimeMs.toString());
+    if (workoutTimerBar) workoutTimerBar.classList.remove('hidden');
+
+    const updateDisplay = () => {
+        const start = parseInt(localStorage.getItem('workout_start_time') || Date.now());
+        const elapsedSec = Math.floor((Date.now() - start) / 1000);
+        if (workoutTimerDisplay) {
+            workoutTimerDisplay.textContent = fmtHMS(elapsedSec);
+        }
+    };
+
+    updateDisplay();
+    workoutTimerInterval = setInterval(updateDisplay, 1000);
+}
+
+function restoreWorkoutTimer() {
+    const savedStart = localStorage.getItem('workout_start_time');
+    if (savedStart) {
+        startWorkoutTimer(parseInt(savedStart));
+    } else {
+        if (workoutTimerBar) workoutTimerBar.classList.add('hidden');
+    }
+}
+
+async function stopWorkoutTimer() {
+    const savedStart = localStorage.getItem('workout_start_time');
+    let durationStr = '00:00:00';
+    if (savedStart) {
+        const elapsedSec = Math.floor((Date.now() - parseInt(savedStart)) / 1000);
+        durationStr = fmtHMS(elapsedSec);
+    }
+
+    const confirmed = await showConfirm(`¿Deseas finalizar tu sesión de entrenamiento?<br><br><strong>Tiempo transcurrido: ${durationStr}</strong>`, 'Terminar', '#ef4444');
+    if (!confirmed) return;
+
+    if (workoutTimerInterval) {
+        clearInterval(workoutTimerInterval);
+        workoutTimerInterval = null;
+    }
+    localStorage.removeItem('workout_start_time');
+    if (workoutTimerBar) workoutTimerBar.classList.add('hidden');
+
+    // Registrar fecha de hoy en trainingDates para consistencia
+    const today = new Date().toLocaleDateString('sv-SE');
+    if (!currentSession.trainingDates) currentSession.trainingDates = [];
+    if (!currentSession.trainingDates.includes(today)) {
+        currentSession.trainingDates.push(today);
+        await syncSessionToFirestore();
+    }
+
+    showToast(`🏆 ¡Entrenamiento completado! (${durationStr})`, 'success');
+}
+
 // UI Navigation
 function showScreen(screen) {
     screenLogin.classList.add('hidden');
@@ -253,6 +317,8 @@ function showScreen(screen) {
     screenExercises.classList.add('hidden');
     screenActiveExercise.classList.add('hidden');
     screenChart.classList.add('hidden');
+    if (screenRunning) screenRunning.classList.add('hidden');
+    if (screenCycling) screenCycling.classList.add('hidden');
     screen.classList.remove('hidden');
 
     if (screen === screenHome) {
@@ -2099,6 +2165,57 @@ function renderGlobalProgressChart() {
 
     container.style.display = 'block';
 
+    // ── Calcular Línea de Tendencia (Regresión Lineal Simple: y = m*x + b) ──
+    const n = dataPoints.length;
+    let trendPoints = [];
+    let percentChange = 0;
+    let slope = 0;
+
+    if (n >= 2) {
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        for (let i = 0; i < n; i++) {
+            sumX += i;
+            sumY += dataPoints[i];
+            sumXY += i * dataPoints[i];
+            sumXX += i * i;
+        }
+        slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+
+        trendPoints = dataPoints.map((_, i) => Math.max(0, Math.round(slope * i + intercept)));
+
+        // Calcular variación porcentual desde la primera hasta la última sesión del período
+        const firstVal = dataPoints[0];
+        const lastVal = dataPoints[n - 1];
+        if (firstVal > 0) {
+            percentChange = Math.round(((lastVal - firstVal) / firstVal) * 100);
+        }
+    }
+
+    // Actualizar badge de tendencia
+    const trendBadge = document.getElementById('global-trend-badge');
+    if (trendBadge) {
+        if (n >= 2 && percentChange !== 0) {
+            trendBadge.style.display = 'inline-block';
+            if (percentChange > 0) {
+                trendBadge.textContent = `▲ +${percentChange}%`;
+                trendBadge.style.background = 'rgba(52, 211, 153, 0.15)';
+                trendBadge.style.color = '#34d399';
+            } else {
+                trendBadge.textContent = `▼ ${percentChange}%`;
+                trendBadge.style.background = 'rgba(248, 113, 113, 0.15)';
+                trendBadge.style.color = '#f87171';
+            }
+        } else if (n >= 2 && slope !== 0) {
+            trendBadge.style.display = 'inline-block';
+            trendBadge.textContent = slope > 0 ? '▲ En ascenso' : '▼ En descenso';
+            trendBadge.style.background = slope > 0 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)';
+            trendBadge.style.color = slope > 0 ? '#34d399' : '#f87171';
+        } else {
+            trendBadge.style.display = 'none';
+        }
+    }
+
     if (globalChartInstance) {
         globalChartInstance.destroy();
     }
@@ -2109,25 +2226,45 @@ function renderGlobalProgressChart() {
     chartGradient.addColorStop(0, 'rgba(96, 165, 250, 0.9)'); // Blue top
     chartGradient.addColorStop(1, 'rgba(59, 130, 246, 0.05)'); // Very soft bottom
 
+    const datasets = [
+        {
+            label: 'Carga Total (kg)',
+            data: dataPoints,
+            borderColor: '#3b82f6',
+            backgroundColor: chartGradient,
+            borderWidth: 3,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#3b82f6',
+            pointHoverBackgroundColor: '#3b82f6',
+            pointHoverBorderColor: '#fff',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            fill: true,
+            tension: 0.4
+        }
+    ];
+
+    // Si hay 2 o más puntos, agregamos la línea de tendencia punteada
+    if (trendPoints.length >= 2) {
+        const isUp = slope >= 0;
+        datasets.push({
+            label: 'Línea de Tendencia',
+            data: trendPoints,
+            borderColor: isUp ? '#34d399' : '#f87171',
+            borderWidth: 2,
+            borderDash: [6, 6],
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            fill: false,
+            tension: 0
+        });
+    }
+
     globalChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Carga Total (kg)',
-                data: dataPoints,
-                borderColor: '#3b82f6',
-                backgroundColor: chartGradient,
-                borderWidth: 3,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#3b82f6',
-                pointHoverBackgroundColor: '#3b82f6',
-                pointHoverBorderColor: '#fff',
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                fill: true,
-                tension: 0.4
-            }]
+            datasets: datasets
         },
         options: {
             responsive: true,
@@ -2163,7 +2300,12 @@ function renderGlobalProgressChart() {
                     padding: 12,
                     cornerRadius: 12,
                     callbacks: {
-                        label: (context) => context.parsed.y.toLocaleString() + ' kg total'
+                        label: (context) => {
+                            if (context.dataset.label === 'Línea de Tendencia') {
+                                return `Tendencia: ${context.parsed.y.toLocaleString()} kg`;
+                            }
+                            return `${context.parsed.y.toLocaleString()} kg total`;
+                        }
                     }
                 }
             },
@@ -3079,8 +3221,17 @@ btnBackActiveExercise.addEventListener('click', () => {
     showScreen(screenActiveExercise);
 });
 
-// btnAddWeek logic removed as weeks are now automatic based on calendar progression
-// btnAddWeek.addEventListener('click', () => { ... });
+btnStartDay.addEventListener('click', () => {
+    if (!localStorage.getItem('workout_start_time')) {
+        startWorkoutTimer();
+    }
+    renderDayList();
+    showScreen(screenSelectDay);
+});
+
+btnStopWorkout.addEventListener('click', () => {
+    stopWorkoutTimer();
+});
 
 // App Init & Auth Listener
 onAuthStateChanged(auth, async (user) => {
@@ -3088,8 +3239,10 @@ onAuthStateChanged(auth, async (user) => {
         currentUserId = user.uid;
         await loadSessionFromFirestore();
         welcomeMsg.textContent = `Hola, ${user.email}`;
+        restoreWorkoutTimer();
         showScreen(screenHome);
     } else {
+        if (workoutTimerBar) workoutTimerBar.classList.add('hidden');
         showScreen(screenLogin);
     }
 
