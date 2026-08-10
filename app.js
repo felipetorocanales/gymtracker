@@ -253,17 +253,35 @@ function showConfirm(labelHtml, confirmLabel = 'Eliminar', confirmColor = '#ef44
 }
 
 // Workout Timer Logic
-function startWorkoutTimer(startTimeMs = Date.now()) {
+function startRestTimer(startTimeMs = Date.now()) {
     if (workoutTimerInterval) clearInterval(workoutTimerInterval);
 
-    localStorage.setItem('workout_start_time', startTimeMs.toString());
+    localStorage.setItem('rest_start_time', startTimeMs.toString());
     if (workoutTimerBar) workoutTimerBar.classList.remove('hidden');
+    
+    const label = document.querySelector('.timer-label');
+    if (label) label.textContent = 'Descanso';
 
     const updateDisplay = () => {
-        const start = parseInt(localStorage.getItem('workout_start_time') || Date.now());
+        const start = parseInt(localStorage.getItem('rest_start_time') || Date.now());
         const elapsedSec = Math.floor((Date.now() - start) / 1000);
-        if (workoutTimerDisplay) {
-            workoutTimerDisplay.textContent = fmtHMS(elapsedSec);
+        if (elapsedSec >= 600) { // 10 minutos
+            if (workoutTimerDisplay) {
+                workoutTimerDisplay.textContent = '00:10:00';
+            }
+            if (workoutTimerInterval) {
+                clearInterval(workoutTimerInterval);
+                workoutTimerInterval = null;
+                
+                // Alerta de vibración (soportada en la mayoría de los dispositivos Android)
+                if ("vibrate" in navigator) {
+                    navigator.vibrate([500, 200, 500, 200, 800]);
+                }
+            }
+        } else {
+            if (workoutTimerDisplay) {
+                workoutTimerDisplay.textContent = fmtHMS(elapsedSec);
+            }
         }
     };
 
@@ -271,10 +289,36 @@ function startWorkoutTimer(startTimeMs = Date.now()) {
     workoutTimerInterval = setInterval(updateDisplay, 1000);
 }
 
+function startWorkoutTimer() {
+    if (!localStorage.getItem('workout_start_time')) {
+        localStorage.setItem('workout_start_time', Date.now().toString());
+    }
+    
+    localStorage.removeItem('rest_start_time');
+    if (workoutTimerInterval) {
+        clearInterval(workoutTimerInterval);
+        workoutTimerInterval = null;
+    }
+    
+    if (workoutTimerBar) workoutTimerBar.classList.remove('hidden');
+    const label = document.querySelector('.timer-label');
+    if (label) label.textContent = 'Entrenamiento Activo';
+    if (workoutTimerDisplay) workoutTimerDisplay.textContent = '00:00:00';
+}
+
 function restoreWorkoutTimer() {
     const savedStart = localStorage.getItem('workout_start_time');
     if (savedStart) {
-        startWorkoutTimer(parseInt(savedStart));
+        if (workoutTimerBar) workoutTimerBar.classList.remove('hidden');
+        
+        const restStart = localStorage.getItem('rest_start_time');
+        if (restStart) {
+            startRestTimer(parseInt(restStart));
+        } else {
+            const label = document.querySelector('.timer-label');
+            if (label) label.textContent = 'Entrenamiento Activo';
+            if (workoutTimerDisplay) workoutTimerDisplay.textContent = '00:00:00';
+        }
     } else {
         if (workoutTimerBar) workoutTimerBar.classList.add('hidden');
     }
@@ -296,6 +340,7 @@ async function stopWorkoutTimer() {
         workoutTimerInterval = null;
     }
     localStorage.removeItem('workout_start_time');
+    localStorage.removeItem('rest_start_time');
     if (workoutTimerBar) workoutTimerBar.classList.add('hidden');
 
     // Registrar fecha de hoy en trainingDates para consistencia
@@ -1557,6 +1602,9 @@ function saveSet() {
     renderSets();
     renderVolumeChart();
     showToast(`✅ Serie guardada: ${reps} reps x ${weight} kg`, 'success');
+
+    // Iniciar timer de descanso
+    startRestTimer();
 
     // Determinar si esta es una sesión nueva o una edición de un día ya realizado.
     // Se guarda en sessionDates[dayId][semana] la fecha en que se inició ese día de
@@ -3222,9 +3270,7 @@ btnBackActiveExercise.addEventListener('click', () => {
 });
 
 btnStartDay.addEventListener('click', () => {
-    if (!localStorage.getItem('workout_start_time')) {
-        startWorkoutTimer();
-    }
+    startWorkoutTimer();
     renderDayList();
     showScreen(screenSelectDay);
 });
