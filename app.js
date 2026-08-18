@@ -523,6 +523,20 @@ function migrateSessionData() {
         }
     }
 
+    if (currentSession.archivedExercises) {
+        for (const cat in currentSession.archivedExercises) {
+            const newList = [];
+            currentSession.archivedExercises[cat].forEach(ex => {
+                if (!ex) return;
+                const norm = normalizeText(ex);
+                const canonical = exMap[norm] || ex;
+                if (canonical !== ex) modified = true;
+                if (!newList.includes(canonical)) newList.push(canonical);
+            });
+            currentSession.archivedExercises[cat] = newList;
+        }
+    }
+
     if (currentSession.exerciseOrder) {
         for (const cat in currentSession.exerciseOrder) {
             const newList = [];
@@ -593,6 +607,7 @@ async function loadSessionFromFirestore() {
             // Asegurarse de que logs y days existen
             if (!currentSession.logs) currentSession.logs = {};
             if (!currentSession.customExercises) currentSession.customExercises = {};
+            if (!currentSession.archivedExercises) currentSession.archivedExercises = {};
             if (!currentSession.customDescriptions) currentSession.customDescriptions = {};
             if (!currentSession.trainingDates) currentSession.trainingDates = [];
             if (!currentSession.sessionDates) currentSession.sessionDates = {}; // { dayId: { week: 'YYYY-MM-DD' } }
@@ -618,6 +633,7 @@ async function loadSessionFromFirestore() {
                 registrationDate: new Date().toISOString(),
                 logs: {},
                 customExercises: {},
+                archivedExercises: {},
                 customDescriptions: {},
                 trainingDates: [],
                 sessionDates: {}, // { dayId: { week: 'YYYY-MM-DD' } }
@@ -873,6 +889,7 @@ function renderDayList() {
             // Clean up dependent data
             if (currentSession.customExercises?.[dayId]) delete currentSession.customExercises[dayId];
             if (currentSession.hiddenExercises?.[dayId]) delete currentSession.hiddenExercises[dayId];
+            if (currentSession.archivedExercises?.[dayId]) delete currentSession.archivedExercises[dayId];
             if (currentSession.exerciseOrder?.[dayId]) delete currentSession.exerciseOrder[dayId];
 
             renderDayList();
@@ -1036,7 +1053,6 @@ function renderDayList() {
 }
 
 // Initialize Exercise List for a specific day
-// Initialize Exercise List for a specific day
 function renderExerciseList(dayId) {
     exerciseListContainer.innerHTML = '';
 
@@ -1045,14 +1061,15 @@ function renderExerciseList(dayId) {
 
     const customExs = currentSession.customExercises[dayId] || [];
     const hiddenExs = currentSession.hiddenExercises?.[dayId] || [];
+    const archivedExs = currentSession.archivedExercises?.[dayId] || [];
 
     // Obtenemos las fechas en las que se ha realizado este día específico
     const datesOfThisDay = currentSession.sessionDates?.[dayId] || [];
 
-    // ⭐ FIX: Recolectar todos los ejercicios: custom + del histórico (logs)
-    let allExercises = [...customExs];
+    // ⭐ FIX: Recolectar todos los ejercicios: custom + del histórico (logs) excluyendo archivados y ocultos
+    let allExercises = customExs.filter(ex => !archivedExs.includes(ex) && !hiddenExs.includes(ex));
 
-    // Agregar ejercicios del historial de logs que no estén ocultos
+    // Agregar ejercicios del historial de logs que no estén ocultos ni archivados
     for (const exerciseName in currentSession.logs) {
         let belongsToThisDay = false;
 
@@ -1062,20 +1079,18 @@ function renderExerciseList(dayId) {
         }
 
         // 2. ¿Tiene logs en las fechas que corresponden a este día?
-        // Solo verificamos si no lo confirmamos en el paso anterior
         if (!belongsToThisDay && datesOfThisDay.length > 0) {
             const exerciseLogs = currentSession.logs[exerciseName] || [];
-            // Comprobamos si alguna fecha del log coincide con las fechas del día
             belongsToThisDay = exerciseLogs.some(log => datesOfThisDay.includes(log.date));
         }
 
-        // Solo agregar si pertenece a ESTE día, no está duplicado y no está oculto
-        if (belongsToThisDay && !allExercises.includes(exerciseName) && !hiddenExs.includes(exerciseName)) {
+        // Solo agregar si pertenece a ESTE día, no está duplicado, no está oculto y no está archivado
+        if (belongsToThisDay && !allExercises.includes(exerciseName) && !hiddenExs.includes(exerciseName) && !archivedExs.includes(exerciseName)) {
             allExercises.push(exerciseName);
         }
     }
 
-    // --- Ordenamiento ---
+    // --- Ordenamiento de ejercicios activos ---
     if (!currentSession.exerciseOrder) currentSession.exerciseOrder = {};
     if (currentSession.exerciseOrder[dayId]) {
         const orderArray = currentSession.exerciseOrder[dayId];
@@ -1091,8 +1106,8 @@ function renderExerciseList(dayId) {
     // Actualizar el orden activo
     currentSession.exerciseOrder[dayId] = [...allExercises];
 
-    // --- Renderizado de la UI ---
-    if (allExercises.length === 0) {
+    // --- Renderizado de la UI de ejercicios activos ---
+    if (allExercises.length === 0 && archivedExs.length === 0) {
         exerciseListContainer.innerHTML = `
             <div class="empty-state">
                 <p>Agrega los ejercicios que harás este día.</p>
@@ -1101,24 +1116,28 @@ function renderExerciseList(dayId) {
         return;
     }
 
-    // ⭐ El resto del código sigue igual (drag & drop, delete, etc.)
+    if (allExercises.length === 0 && archivedExs.length > 0) {
+        const emptyActive = document.createElement('div');
+        emptyActive.className = 'empty-state';
+        emptyActive.style.padding = '1.5rem 0.5rem';
+        emptyActive.innerHTML = `<p>No hay ejercicios activos. Agrega uno nuevo o recupera uno archivado abajo.</p>`;
+        exerciseListContainer.appendChild(emptyActive);
+    }
+
     let draggedItemIndex = null;
     let draggedOverItemIndex = null;
 
     allExercises.forEach((ex, index) => {
         const isCustom = customExs.includes(ex);
 
-        // [TODO: Mantener todo el resto del código de creación de elementos...]
-        // El código de drag, swipe, etc. permanece igual
-
         // Container
         const container = document.createElement('div');
         container.className = 'list-item-container';
 
-        // Delete Background
+        // Archive Background on Swipe
         const deleteBg = document.createElement('div');
-        deleteBg.className = 'swipe-delete-bg';
-        deleteBg.innerHTML = '🗑️';
+        deleteBg.className = 'swipe-delete-bg swipe-archive-bg';
+        deleteBg.innerHTML = '📦 Archivar';
 
         // Swipe Content Wrapper
         const swipeContent = document.createElement('div');
@@ -1167,8 +1186,8 @@ function renderExerciseList(dayId) {
             openExercise(ex);
         });
 
-        const performDelete = async () => {
-            const confirmed = await showConfirm(`¿Estás seguro de que deseas eliminar <strong>"${ex}"</strong>?<br><br><span style="color:var(--accent); font-size:0.9rem;">⚠️ ADVERTENCIA: Se perderá el acceso rápido a la historia de las series de este ejercicio.</span>`);
+        const performArchive = async () => {
+            const confirmed = await showConfirm(`¿Deseas archivar <strong>"${ex}"</strong>?<br><br><span style="color:var(--text-secondary); font-size:0.9rem;">El ejercicio se moverá al final de la lista de este día. Podrás recuperarlo o eliminarlo definitivamente cuando quieras.</span>`, 'Archivar', '#f59e0b');
             if (!confirmed) {
                 swipeContent.style.transform = `translateX(0)`;
                 return;
@@ -1178,12 +1197,6 @@ function renderExerciseList(dayId) {
                 const customList = currentSession.customExercises[dayId];
                 const customIndex = customList.indexOf(ex);
                 if (customIndex > -1) customList.splice(customIndex, 1);
-            } else {
-                if (!currentSession.hiddenExercises) currentSession.hiddenExercises = {};
-                if (!currentSession.hiddenExercises[dayId]) currentSession.hiddenExercises[dayId] = [];
-                if (!currentSession.hiddenExercises[dayId].includes(ex)) {
-                    currentSession.hiddenExercises[dayId].push(ex);
-                }
             }
             const activeOrder = currentSession.exerciseOrder && currentSession.exerciseOrder[dayId];
             if (activeOrder) {
@@ -1191,12 +1204,18 @@ function renderExerciseList(dayId) {
                 if (orderIdx > -1) activeOrder.splice(orderIdx, 1);
             }
 
+            if (!currentSession.archivedExercises) currentSession.archivedExercises = {};
+            if (!currentSession.archivedExercises[dayId]) currentSession.archivedExercises[dayId] = [];
+            if (!currentSession.archivedExercises[dayId].includes(ex)) {
+                currentSession.archivedExercises[dayId].push(ex);
+            }
+
             renderExerciseList(dayId);
-            showToast('🗑 Ejercicio eliminado', 'error');
+            showToast(`📦 "${ex}" archivado`, 'info');
             await syncSessionToFirestore();
         };
 
-        // Swipe events for DELETE
+        // Swipe events for ARCHIVE
         let startX = 0;
         let currentX = 0;
         let isSwiping = false;
@@ -1228,7 +1247,7 @@ function renderExerciseList(dayId) {
             let diff = currentX - startX;
             if (diff > 120) {
                 swipeContent.style.transform = `translateX(100%)`;
-                setTimeout(performDelete, 300);
+                setTimeout(performArchive, 300);
             } else {
                 swipeContent.style.transform = `translateX(0)`;
             }
@@ -1246,8 +1265,10 @@ function renderExerciseList(dayId) {
                 draggedOverItemIndex = null;
                 container.style.opacity = '1';
                 Array.from(exerciseListContainer.children).forEach(child => {
-                    child.style.transform = '';
-                    child.style.transition = '';
+                    if (child.classList.contains('list-item-container')) {
+                        child.style.transform = '';
+                        child.style.transition = '';
+                    }
                 });
                 return;
             }
@@ -1315,8 +1336,10 @@ function renderExerciseList(dayId) {
             container.style.opacity = '0.3';
             exerciseListContainer.style.overflow = '';
             Array.from(exerciseListContainer.children).forEach(child => {
-                child.style.transform = '';
-                child.style.transition = '';
+                if (child.classList.contains('list-item-container')) {
+                    child.style.transform = '';
+                    child.style.transition = '';
+                }
             });
         };
 
@@ -1386,11 +1409,13 @@ function renderExerciseList(dayId) {
                 draggedOverItemIndex = newOverIndex;
 
                 Array.from(exerciseListContainer.children).forEach((child, i) => {
-                    if (i === draggedItemIndex) return;
+                    if (!child.classList.contains('list-item-container')) return;
+                    const childRow = child.querySelector('.list-row');
+                    const ci = childRow ? parseInt(childRow.dataset.index) : i;
+                    if (ci === draggedItemIndex) return;
+
                     child.style.transition = 'transform 0.18s ease';
                     if (draggedOverItemIndex !== null) {
-                        const childRow = child.querySelector('.list-row');
-                        const ci = childRow ? parseInt(childRow.dataset.index) : i;
                         if (draggedItemIndex < draggedOverItemIndex) {
                             if (ci > draggedItemIndex && ci <= draggedOverItemIndex) {
                                 child.style.transform = 'translateY(-100%)';
@@ -1438,6 +1463,112 @@ function renderExerciseList(dayId) {
         container.appendChild(swipeContent);
         exerciseListContainer.appendChild(container);
     });
+
+    // --- Renderizado de Ejercicios Archivados ---
+    if (archivedExs.length > 0) {
+        const archivedSection = document.createElement('div');
+        archivedSection.className = 'archived-exercises-section';
+
+        const header = document.createElement('div');
+        header.className = 'archived-section-header';
+        header.innerHTML = `
+            <span class="archived-section-title">📦 Archivados (${archivedExs.length})</span>
+        `;
+        archivedSection.appendChild(header);
+
+        archivedExs.forEach(archEx => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'archived-exercise-item';
+
+            const nameBtn = document.createElement('button');
+            nameBtn.className = 'archived-exercise-btn';
+            nameBtn.innerHTML = `
+                <span class="archived-exercise-name">${archEx}</span>
+                <span class="archived-pill-badge">Archivado</span>
+            `;
+            nameBtn.addEventListener('click', () => {
+                openExercise(archEx);
+            });
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'archived-actions';
+
+            // Botón Recuperar
+            const btnRestore = document.createElement('button');
+            btnRestore.className = 'btn-archived-restore';
+            btnRestore.title = 'Recuperar ejercicio';
+            btnRestore.innerHTML = '<span>↩️</span><span class="btn-text">Recuperar</span>';
+            btnRestore.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const archList = currentSession.archivedExercises[dayId] || [];
+                const idx = archList.indexOf(archEx);
+                if (idx > -1) archList.splice(idx, 1);
+
+                if (!currentSession.customExercises[dayId]) currentSession.customExercises[dayId] = [];
+                if (!currentSession.customExercises[dayId].includes(archEx)) {
+                    currentSession.customExercises[dayId].push(archEx);
+                }
+
+                if (currentSession.hiddenExercises?.[dayId]) {
+                    const hIdx = currentSession.hiddenExercises[dayId].indexOf(archEx);
+                    if (hIdx > -1) currentSession.hiddenExercises[dayId].splice(hIdx, 1);
+                }
+
+                if (currentSession.exerciseOrder?.[dayId]) {
+                    if (!currentSession.exerciseOrder[dayId].includes(archEx)) {
+                        currentSession.exerciseOrder[dayId].push(archEx);
+                    }
+                }
+
+                renderExerciseList(dayId);
+                showToast(`✅ "${archEx}" recuperado`, 'success');
+                await syncSessionToFirestore();
+            });
+
+            // Botón Eliminar Definitivo
+            const btnDeletePerm = document.createElement('button');
+            btnDeletePerm.className = 'btn-archived-delete';
+            btnDeletePerm.title = 'Eliminar definitivamente';
+            btnDeletePerm.innerHTML = '<span>🗑️</span>';
+            btnDeletePerm.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const confirmed = await showConfirm(`¿Estás seguro de que deseas eliminar definitivamente <strong>"${archEx}"</strong> de este día?<br><br><span style="color:#ef4444; font-size:0.9rem;">⚠️ ADVERTENCIA: Se ocultará de este día de forma permanente.</span>`, 'Eliminar definitivamente', '#ef4444');
+                if (!confirmed) return;
+
+                const archList = currentSession.archivedExercises[dayId] || [];
+                const idx = archList.indexOf(archEx);
+                if (idx > -1) archList.splice(idx, 1);
+
+                if (currentSession.customExercises?.[dayId]) {
+                    const cIdx = currentSession.customExercises[dayId].indexOf(archEx);
+                    if (cIdx > -1) currentSession.customExercises[dayId].splice(cIdx, 1);
+                }
+                if (currentSession.exerciseOrder?.[dayId]) {
+                    const oIdx = currentSession.exerciseOrder[dayId].indexOf(archEx);
+                    if (oIdx > -1) currentSession.exerciseOrder[dayId].splice(oIdx, 1);
+                }
+
+                if (!currentSession.hiddenExercises) currentSession.hiddenExercises = {};
+                if (!currentSession.hiddenExercises[dayId]) currentSession.hiddenExercises[dayId] = [];
+                if (!currentSession.hiddenExercises[dayId].includes(archEx)) {
+                    currentSession.hiddenExercises[dayId].push(archEx);
+                }
+
+                renderExerciseList(dayId);
+                showToast(`🗑 "${archEx}" eliminado definitivamente`, 'error');
+                await syncSessionToFirestore();
+            });
+
+            actionsDiv.appendChild(btnRestore);
+            actionsDiv.appendChild(btnDeletePerm);
+
+            itemEl.appendChild(nameBtn);
+            itemEl.appendChild(actionsDiv);
+            archivedSection.appendChild(itemEl);
+        });
+
+        exerciseListContainer.appendChild(archivedSection);
+    }
 }
 
 function renderWeekNavigation() {
@@ -1491,11 +1622,18 @@ async function renameExercise(oldName, newName) {
         delete currentSession.customDescriptions[oldName];
     }
 
-    // 3. Rename in Days (customExercises, exerciseOrder)
+    // 3. Rename in Days (customExercises, archivedExercises, exerciseOrder)
     if (currentSession.customExercises) {
         for (const day in currentSession.customExercises) {
             const idx = currentSession.customExercises[day].indexOf(oldName);
             if (idx !== -1) currentSession.customExercises[day][idx] = newName;
+        }
+    }
+
+    if (currentSession.archivedExercises) {
+        for (const day in currentSession.archivedExercises) {
+            const idx = currentSession.archivedExercises[day].indexOf(oldName);
+            if (idx !== -1) currentSession.archivedExercises[day][idx] = newName;
         }
     }
 
@@ -3105,7 +3243,19 @@ btnAddExercise.addEventListener('click', async () => {
         currentSession.customExercises[activeDay] = [];
     }
 
-    currentSession.customExercises[activeDay].push(exerciseName);
+    // Si estaba archivado u oculto, desarchivarlo/desocultarlo
+    if (currentSession.archivedExercises?.[activeDay]) {
+        const archIdx = currentSession.archivedExercises[activeDay].indexOf(exerciseName);
+        if (archIdx > -1) currentSession.archivedExercises[activeDay].splice(archIdx, 1);
+    }
+    if (currentSession.hiddenExercises?.[activeDay]) {
+        const hidIdx = currentSession.hiddenExercises[activeDay].indexOf(exerciseName);
+        if (hidIdx > -1) currentSession.hiddenExercises[activeDay].splice(hidIdx, 1);
+    }
+
+    if (!currentSession.customExercises[activeDay].includes(exerciseName)) {
+        currentSession.customExercises[activeDay].push(exerciseName);
+    }
 
     renderExerciseList(activeDay);
     showToast(`✅ "${exerciseName}" agregado`, 'success');
