@@ -611,6 +611,9 @@ async function loadSessionFromFirestore() {
             if (!currentSession.customDescriptions) currentSession.customDescriptions = {};
             if (!currentSession.trainingDates) currentSession.trainingDates = [];
             if (!currentSession.sessionDates) currentSession.sessionDates = {}; // { dayId: { week: 'YYYY-MM-DD' } }
+            if (!currentSession.cardioLogs) currentSession.cardioLogs = [];
+            if (!currentSession.cyclingLogs) currentSession.cyclingLogs = [];
+            if (!currentSession.walkingLogs) currentSession.walkingLogs = [];
             if (!currentSession.registrationDate) {
                 currentSession.registrationDate = currentSession.date || new Date().toISOString();
             }
@@ -637,7 +640,10 @@ async function loadSessionFromFirestore() {
                 customDescriptions: {},
                 trainingDates: [],
                 sessionDates: {}, // { dayId: { week: 'YYYY-MM-DD' } }
-                days: []
+                days: [],
+                cardioLogs: [],
+                cyclingLogs: [],
+                walkingLogs: []
             };
             maxWeek = 1;
             currentWeek = 1;
@@ -2568,6 +2574,7 @@ function renderCardioChart() {
 
     const runLogs = currentSession.cardioLogs || [];
     const cycleLogs = currentSession.cyclingLogs || [];
+    const walkLogs = currentSession.walkingLogs || [];
 
     // Helper: get week/month label from an ISO date string
     const getMonday = (d) => {
@@ -2604,11 +2611,13 @@ function renderCardioChart() {
 
     const runMap = aggregate(runLogs, keyFn);
     const cycleMap = aggregate(cycleLogs, keyFn);
+    const walkMap = aggregate(walkLogs, keyFn);
 
     // Union of all period keys, sorted chronologically
     const allKeys = Array.from(new Set([
         ...Object.keys(runMap),
-        ...Object.keys(cycleMap)
+        ...Object.keys(cycleMap),
+        ...Object.keys(walkMap)
     ])).sort();
 
     if (allKeys.length === 0) {
@@ -2626,6 +2635,7 @@ function renderCardioChart() {
 
     const runData = allKeys.map(k => Math.round((runMap[k] || 0) * 100) / 100);
     const cycleData = allKeys.map(k => Math.round((cycleMap[k] || 0) * 100) / 100);
+    const walkData = allKeys.map(k => Math.round((walkMap[k] || 0) * 100) / 100);
 
     container.style.display = 'block';
 
@@ -2639,6 +2649,10 @@ function renderCardioChart() {
     const cycleGrad = context.createLinearGradient(0, 0, 0, 180);
     cycleGrad.addColorStop(0, 'rgba(6, 182, 212, 0.85)');
     cycleGrad.addColorStop(1, 'rgba(6, 182, 212, 0.05)');
+
+    const walkGrad = context.createLinearGradient(0, 0, 0, 180);
+    walkGrad.addColorStop(0, 'rgba(245, 158, 11, 0.85)');
+    walkGrad.addColorStop(1, 'rgba(245, 158, 11, 0.05)');
 
     cardioChartInstance = new Chart(ctx, {
         type: 'bar',
@@ -2660,6 +2674,16 @@ function renderCardioChart() {
                     data: cycleData,
                     backgroundColor: cycleGrad,
                     borderColor: '#06b6d4',
+                    borderWidth: 1.5,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'cardio'
+                },
+                {
+                    label: 'Caminata (km)',
+                    data: walkData,
+                    backgroundColor: walkGrad,
+                    borderColor: '#f59e0b',
                     borderWidth: 1.5,
                     borderRadius: 6,
                     borderSkipped: false,
@@ -2703,12 +2727,13 @@ function renderCardioChart() {
 }
 
 // ============================================================
-// RUNNING & CYCLING MODULE
+// RUNNING, CYCLING & WALKING MODULE
 // ============================================================
 
 // ── Screen refs ─────────────────────────────────────────────
 const screenRunning = document.getElementById('screen-running');
 const screenCycling = document.getElementById('screen-cycling');
+const screenWalking = document.getElementById('screen-walking');
 
 // ── Running DOM ──────────────────────────────────────────────
 const btnStartRunning = document.getElementById('btn-start-running');
@@ -2728,6 +2753,7 @@ const runningHistoryList = document.getElementById('running-history-list');
 const stravaStatusEl = document.getElementById('strava-status');
 const stravaStatusText = document.getElementById('strava-status-text');
 const btnConnectStrava = document.getElementById('btn-connect-strava');
+const btnSyncStravaRun = document.getElementById('btn-sync-strava-run');
 
 // ── Cycling DOM ──────────────────────────────────────────────
 const btnStartCycling = document.getElementById('btn-start-cycling');
@@ -2747,6 +2773,27 @@ const cyclingHistoryList = document.getElementById('cycling-history-list');
 const stravaStatusCyclingEl = document.getElementById('strava-status-cycling');
 const stravaStatusTextCycling = document.getElementById('strava-status-text-cycling');
 const btnConnectStravaCycling = document.getElementById('btn-connect-strava-cycling');
+const btnSyncStravaCycle = document.getElementById('btn-sync-strava-cycle');
+
+// ── Walking DOM ──────────────────────────────────────────────
+const btnStartWalking = document.getElementById('btn-start-walking');
+const btnBackWalking = document.getElementById('btn-back-walking');
+const btnWalkModeGps = document.getElementById('btn-walk-mode-gps');
+const btnWalkModeTreadmill = document.getElementById('btn-walk-mode-treadmill');
+const walkGpsStatusBar = document.getElementById('walk-gps-status-bar');
+const walkGpsStatusIcon = document.getElementById('walk-gps-status-icon');
+const walkGpsStatusText = document.getElementById('walk-gps-status-text');
+const walkingTimerEl = document.getElementById('walking-timer');
+const walkStatDistance = document.getElementById('walk-stat-distance');
+const walkStatPace = document.getElementById('walk-stat-pace');
+const walkStatCalories = document.getElementById('walk-stat-calories');
+const btnWalkStart = document.getElementById('btn-walk-start');
+const btnWalkStop = document.getElementById('btn-walk-stop');
+const walkingHistoryList = document.getElementById('walking-history-list');
+const stravaStatusWalkingEl = document.getElementById('strava-status-walking');
+const stravaStatusTextWalking = document.getElementById('strava-status-text-walking');
+const btnConnectStravaWalking = document.getElementById('btn-connect-strava-walking');
+const btnSyncStravaWalk = document.getElementById('btn-sync-strava-walk');
 
 // ── State ────────────────────────────────────────────────────
 let isRunning = false, runInterval = null, runElapsed = 0;
@@ -2754,6 +2801,8 @@ let runMode = 'gps', runDistKm = 0, runWatchId = null, runLastPos = null;
 let isCycling = false, cycleInterval = null, cycleElapsed = 0;
 let cycleMode = 'gps', cycleDistKm = 0, cycleWatchId = null, cycleLastPos = null;
 let curSpeedKmh = 0;
+let isWalking = false, walkInterval = null, walkElapsed = 0;
+let walkMode = 'gps', walkDistKm = 0, walkWatchId = null, walkLastPos = null;
 
 // ── Helpers ──────────────────────────────────────────────────
 function fmtHMS(s) {
@@ -2776,6 +2825,7 @@ function haversineKm(la1, lo1, la2, lo2) {
 }
 function runKcal(km) { return Math.round(km * 60); }
 function cycleKcal(km) { return Math.round(km * 30); }
+function walkKcal(km) { return Math.round(km * 50); }
 
 // ── Strava UI ────────────────────────────────────────────────
 function updateStravaStatusUI() {
@@ -2783,14 +2833,26 @@ function updateStravaStatusUI() {
     const ok = !!(tokens && tokens.access_token);
     const t = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
     [[stravaStatusEl, stravaStatusText, btnConnectStrava],
-    [stravaStatusCyclingEl, stravaStatusTextCycling, btnConnectStravaCycling]
+    [stravaStatusCyclingEl, stravaStatusTextCycling, btnConnectStravaCycling],
+    [stravaStatusWalkingEl, stravaStatusTextWalking, btnConnectStravaWalking]
     ].forEach(([bar, txt, btn]) => {
         if (!bar) return;
         bar.classList.toggle('strava-connected', ok);
         if (txt) txt.textContent = ok ? `Strava conectado · Última sync: ${t}` : 'Conecta para sincronizar automáticamente';
         if (btn) { btn.textContent = ok ? 'Desconectar' : 'Conectar'; btn.className = ok ? 'btn-strava-disconnect' : 'btn-strava-connect'; }
     });
+    [btnSyncStravaRun, btnSyncStravaCycle, btnSyncStravaWalk].forEach(btn => {
+        if (btn) btn.style.display = ok ? 'inline-block' : 'none';
+    });
 }
+
+[btnSyncStravaRun, btnSyncStravaCycle, btnSyncStravaWalk].forEach(btn => {
+    if (btn) btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        syncStravaActivities(true);
+    });
+});
+
 function handleStravaConnect() {
     const tokens = (() => { try { return JSON.parse(localStorage.getItem('strava_tokens') || 'null'); } catch { return null; } })();
     if (tokens && tokens.access_token) {
@@ -2800,7 +2862,7 @@ function handleStravaConnect() {
     } else {
         const clientId = '245269';
         const redirectUri = window.location.origin + window.location.pathname;
-        const stravaAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&approval_prompt=force&scope=read,activity:read,activity:read_all`;
+        const stravaAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&approval_prompt=force&scope=read,activity:read,activity:read_all,activity:write`;
         window.location.href = stravaAuthUrl;
     }
 }
@@ -2891,6 +2953,13 @@ async function stopRunSession() {
     showToast('✅ Sesión de trote guardada', 'success');
     resetRunDisplays();
     renderRunHistory();
+    uploadActivityToStrava({
+        name: '🏃 Trote - Gym Tracker',
+        sportType: 'Run',
+        startDate: record.date,
+        elapsedSeconds: record.duracion,
+        distanceKm: record.distancia
+    });
 }
 function renderRunHistory() {
     if (!runningHistoryList) return;
@@ -2939,6 +3008,7 @@ btnStartRunning.addEventListener('click', () => {
     updateStravaStatusUI();
     screenHome.classList.add('hidden');
     if (screenRunning) screenRunning.classList.remove('hidden');
+    syncStravaActivities(false);
 });
 btnBackRunning.addEventListener('click', () => {
     if (isRunning) { isRunning = false; clearInterval(runInterval); stopRunGps(); resetRunDisplays(); }
@@ -3019,6 +3089,13 @@ async function stopCycleSession() {
     await syncSessionToFirestore();
     showToast('✅ Sesión de bicicleta guardada', 'success');
     resetCycleDisplays(); renderCycleHistory();
+    uploadActivityToStrava({
+        name: '🚴 Ciclismo - Gym Tracker',
+        sportType: 'Ride',
+        startDate: record.date,
+        elapsedSeconds: record.duracion,
+        distanceKm: record.distancia
+    });
 }
 function renderCycleHistory() {
     if (!cyclingHistoryList) return;
@@ -3068,6 +3145,7 @@ btnStartCycling.addEventListener('click', () => {
     updateStravaStatusUI();
     screenHome.classList.add('hidden');
     if (screenCycling) screenCycling.classList.remove('hidden');
+    syncStravaActivities(false);
 });
 btnBackCycling.addEventListener('click', () => {
     if (isCycling) { isCycling = false; clearInterval(cycleInterval); stopCycleGps(); resetCycleDisplays(); }
@@ -3075,11 +3153,409 @@ btnBackCycling.addEventListener('click', () => {
     showScreen(screenHome);
 });
 
+// ══════════════════════════════════════════════════════════════
+// WALKING
+// ══════════════════════════════════════════════════════════════
+function resetWalkDisplays() {
+    walkDistKm = 0; walkElapsed = 0; walkLastPos = null;
+    if (walkingTimerEl) walkingTimerEl.textContent = '00:00:00';
+    if (walkStatDistance) walkStatDistance.textContent = '0.00';
+    if (walkStatPace) walkStatPace.textContent = '--:--';
+    if (walkStatCalories) walkStatCalories.textContent = '0';
+}
+function stopWalkGps() {
+    if (walkWatchId !== null) { navigator.geolocation.clearWatch(walkWatchId); walkWatchId = null; }
+}
+function startWalkGps() {
+    if (!navigator.geolocation) { setGpsUI(walkGpsStatusBar, walkGpsStatusIcon, walkGpsStatusText, 'error'); return; }
+    setGpsUI(walkGpsStatusBar, walkGpsStatusIcon, walkGpsStatusText, 'idle');
+    if (walkGpsStatusText) walkGpsStatusText.textContent = 'Buscando señal GPS...';
+    walkWatchId = navigator.geolocation.watchPosition(
+        pos => {
+            setGpsUI(walkGpsStatusBar, walkGpsStatusIcon, walkGpsStatusText, 'active');
+            if (walkLastPos && isWalking) {
+                const d = haversineKm(walkLastPos.lat, walkLastPos.lon, pos.coords.latitude, pos.coords.longitude);
+                if (d < 0.4) walkDistKm += d;
+            }
+            walkLastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        },
+        () => setGpsUI(walkGpsStatusBar, walkGpsStatusIcon, walkGpsStatusText, 'error'),
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+}
+function startWalkSession() {
+    isWalking = true;
+    if (btnWalkStart) { btnWalkStart.textContent = 'EN CURSO...'; btnWalkStart.classList.add('is-walking'); }
+    if (btnWalkStop) btnWalkStop.style.display = 'block';
+    if (walkingTimerEl) walkingTimerEl.classList.add('walking');
+    if (walkMode === 'gps') startWalkGps();
+    walkInterval = setInterval(() => {
+        walkElapsed++;
+        if (walkingTimerEl) walkingTimerEl.textContent = fmtHMS(walkElapsed);
+        if (walkStatDistance) walkStatDistance.textContent = walkDistKm.toFixed(2);
+        if (walkStatCalories) walkStatCalories.textContent = walkKcal(walkDistKm);
+        if (walkDistKm > 0) {
+            const pps = walkElapsed / walkDistKm;
+            if (walkStatPace) walkStatPace.textContent = `${Math.floor(pps / 60)}:${String(Math.floor(pps % 60)).padStart(2, '0')}`;
+        }
+    }, 1000);
+}
+async function stopWalkSession() {
+    if (!isWalking) return;
+    isWalking = false;
+    clearInterval(walkInterval); walkInterval = null;
+    stopWalkGps();
+    if (walkingTimerEl) walkingTimerEl.classList.remove('walking');
+    if (btnWalkStart) { btnWalkStart.textContent = 'COMENZAR'; btnWalkStart.classList.remove('is-walking'); }
+    if (btnWalkStop) btnWalkStop.style.display = 'none';
+    const elapsed = walkElapsed;
+    if (elapsed < 30) { showToast('Sesión muy corta (mín. 30 seg.)', 'error'); resetWalkDisplays(); return; }
+    let finalDist = walkDistKm;
+    if (walkMode === 'treadmill') {
+        const inp = await showModal('¿Cuántos km caminaste en la cinta/interior?', 'ej: 3.5', 'number');
+        if (!inp) { resetWalkDisplays(); return; }
+        finalDist = parseFloat(inp.replace(',', '.'));
+        if (isNaN(finalDist) || finalDist <= 0) { showToast('Distancia inválida.', 'error'); resetWalkDisplays(); return; }
+    }
+    const pps = finalDist > 0 ? elapsed / finalDist : 0;
+    const paceStr = finalDist > 0 ? `${Math.floor(pps / 60)}:${String(Math.floor(pps % 60)).padStart(2, '0')}` : '--:--';
+    const record = { id: Date.now(), date: new Date().toISOString(), tipo: walkMode, duracion: elapsed, distancia: Math.round(finalDist * 100) / 100, ritmo: paceStr, calorias: walkKcal(finalDist) };
+    if (!currentSession.walkingLogs) currentSession.walkingLogs = [];
+    currentSession.walkingLogs.unshift(record);
+    const today = new Date().toLocaleDateString('sv-SE');
+    if (!currentSession.trainingDates) currentSession.trainingDates = [];
+    if (!currentSession.trainingDates.includes(today)) currentSession.trainingDates.push(today);
+    await syncSessionToFirestore();
+    showToast('✅ Sesión de caminata guardada', 'success');
+    resetWalkDisplays();
+    renderWalkHistory();
+    uploadActivityToStrava({
+        name: '🚶 Caminata - Gym Tracker',
+        sportType: 'Walk',
+        startDate: record.date,
+        elapsedSeconds: record.duracion,
+        distanceKm: record.distancia
+    });
+}
+function renderWalkHistory() {
+    if (!walkingHistoryList) return;
+    const logs = currentSession.walkingLogs || [];
+    if (!logs.length) { walkingHistoryList.innerHTML = '<div class="walking-empty-state">Aún no tienes sesiones.<br>¡A caminar! 🚶</div>'; return; }
+    walkingHistoryList.innerHTML = '';
+    logs.forEach((log, idx) => {
+        const isS = log.tipo === 'strava';
+        const mLabel = isS ? 'Strava' : (log.tipo === 'gps' ? '🛰️ Calle' : '🚶 Cinta');
+        const sBadge = isS ? '<span class="run-history-strava-badge">⚡ Strava</span>' : '';
+        const rName = (isS && log.nombre) ? `<div class="run-name-label">"${log.nombre}"</div>` : '';
+        const bpm = (isS && log.pulsaciones) ? `<div class="walk-history-stat"><span class="walk-history-stat-value">${Math.round(log.pulsaciones)}</span><span class="walk-history-stat-label">bpm ❤️</span></div>` : '';
+        const card = document.createElement('div');
+        card.className = 'walk-history-card' + (isS ? ' from-strava' : '');
+        card.innerHTML = `<div class="walk-history-header"><span class="walk-history-date">${fmtDate(log.date)}${sBadge}</span><span class="walk-history-mode">${mLabel}</span></div>${rName}<div class="walk-history-stats"><div class="walk-history-stat"><span class="walk-history-stat-value">${(log.distancia || 0).toFixed(2)}</span><span class="walk-history-stat-label">km</span></div><div class="walk-history-stat"><span class="walk-history-stat-value">${fmtDur(log.duracion || 0)}</span><span class="walk-history-stat-label">Tiempo</span></div><div class="walk-history-stat"><span class="walk-history-stat-value">${log.ritmo || '--'}</span><span class="walk-history-stat-label">min/km</span></div><div class="walk-history-stat"><span class="walk-history-stat-value">${log.calorias || 0}</span><span class="walk-history-stat-label">kcal</span></div>${bpm}</div><button class="walk-delete-btn" data-idx="${idx}">−</button>`;
+        walkingHistoryList.appendChild(card);
+    });
+    walkingHistoryList.querySelectorAll('.walk-delete-btn').forEach(btn => btn.addEventListener('click', async () => {
+        const i = parseInt(btn.dataset.idx);
+        if (!await showConfirm('¿Eliminar esta sesión?', 'Eliminar', '#ef4444')) return;
+        currentSession.walkingLogs.splice(i, 1);
+        await syncSessionToFirestore();
+        renderWalkHistory();
+        showToast('🗑 Sesión eliminada', 'error');
+    }));
+}
+// Walking listeners
+btnWalkModeGps.addEventListener('click', () => {
+    if (isWalking) return;
+    walkMode = 'gps'; btnWalkModeGps.classList.add('active'); btnWalkModeTreadmill.classList.remove('active');
+    if (walkGpsStatusBar) walkGpsStatusBar.classList.remove('hidden');
+    if (walkGpsStatusText) walkGpsStatusText.textContent = 'Buscando señal GPS...';
+});
+btnWalkModeTreadmill.addEventListener('click', () => {
+    if (isWalking) return;
+    walkMode = 'treadmill'; btnWalkModeTreadmill.classList.add('active'); btnWalkModeGps.classList.remove('active');
+    if (walkGpsStatusBar) walkGpsStatusBar.classList.add('hidden');
+});
+btnWalkStart.addEventListener('click', () => { if (!isWalking) startWalkSession(); });
+btnWalkStop.addEventListener('click', () => stopWalkSession());
+btnConnectStravaWalking.addEventListener('click', handleStravaConnect);
+btnStartWalking.addEventListener('click', () => {
+    resetWalkDisplays(); renderWalkHistory();
+    walkMode = 'gps'; btnWalkModeGps.classList.add('active'); btnWalkModeTreadmill.classList.remove('active');
+    if (walkGpsStatusBar) { walkGpsStatusBar.classList.remove('hidden'); if (walkGpsStatusText) walkGpsStatusText.textContent = 'Buscando señal GPS...'; }
+    updateStravaStatusUI();
+    screenHome.classList.add('hidden');
+    if (screenWalking) screenWalking.classList.remove('hidden');
+    syncStravaActivities(false);
+});
+btnBackWalking.addEventListener('click', () => {
+    if (isWalking) { isWalking = false; clearInterval(walkInterval); stopWalkGps(); resetWalkDisplays(); }
+    if (screenWalking) screenWalking.classList.add('hidden');
+    showScreen(screenHome);
+});
+
+// ── Strava Activities Synchronization Engine ──────────────────
+async function getValidStravaToken() {
+    let tokens = (() => { try { return JSON.parse(localStorage.getItem('strava_tokens') || 'null'); } catch { return null; } })();
+    if (!tokens || !tokens.access_token) return null;
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    // Refresh token if expired or expires within 5 minutes
+    if (tokens.expires_at && tokens.expires_at < nowSec + 300) {
+        if (!tokens.refresh_token) return tokens.access_token;
+        try {
+            const res = await fetch('https://strava-oauth-proxy.felipetoro-c.workers.dev/strava/refresh', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh_token: tokens.refresh_token })
+            });
+            if (res.ok) {
+                const refreshed = await res.json();
+                if (refreshed.access_token) {
+                    tokens = {
+                        ...tokens,
+                        access_token: refreshed.access_token,
+                        refresh_token: refreshed.refresh_token || tokens.refresh_token,
+                        expires_at: refreshed.expires_at
+                    };
+                    localStorage.setItem('strava_tokens', JSON.stringify(tokens));
+                }
+            }
+        } catch (e) {
+            console.error('Error al renovar token de Strava:', e);
+        }
+    }
+    return tokens.access_token;
+}
+
+let isSyncingStrava = false;
+async function syncStravaActivities(showToastOnComplete = false) {
+    if (isSyncingStrava) return;
+    const tokens = (() => { try { return JSON.parse(localStorage.getItem('strava_tokens') || 'null'); } catch { return null; } })();
+    if (!tokens || !tokens.access_token) {
+        if (showToastOnComplete) showToast('⚠️ Conecta tu cuenta de Strava para sincronizar', 'error');
+        return;
+    }
+
+    const token = await getValidStravaToken();
+    if (!token) {
+        if (showToastOnComplete) showToast('⚠️ Sesión de Strava expirada. Por favor presiona Conectar.', 'error');
+        return;
+    }
+
+    if (showToastOnComplete) showToast('Consultando actividades de Strava...', 'info');
+
+    isSyncingStrava = true;
+    [stravaStatusEl, stravaStatusCyclingEl, stravaStatusWalkingEl].forEach(bar => {
+        if (bar) bar.classList.add('strava-syncing');
+    });
+
+    try {
+        const res = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=30', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+            localStorage.removeItem('strava_tokens');
+            updateStravaStatusUI();
+            if (showToastOnComplete) showToast('Tu sesión de Strava expiró. Por favor reconecta.', 'error');
+            return;
+        }
+        if (!res.ok) {
+            console.warn('Strava activities fetch status:', res.status);
+            let detail = '';
+            try {
+                const rawBody = await res.text();
+                try {
+                    const errData = JSON.parse(rawBody);
+                    console.error('Strava API Error JSON:', res.status, errData);
+                    if (errData.message) detail = errData.message;
+                    if (errData.errors && Array.isArray(errData.errors)) {
+                        const extra = errData.errors.map(e => `${e.resource || ''} ${e.field || ''}: ${e.code || ''}`.trim()).filter(Boolean).join(' | ');
+                        if (extra) detail += ` (${extra})`;
+                    }
+                } catch {
+                    detail = rawBody.slice(0, 140);
+                }
+            } catch (e) {
+                detail = 'Sin detalles';
+            }
+
+            const scopeInfo = tokens && tokens.scope ? ` [Scope: ${tokens.scope}]` : '';
+            if (showToastOnComplete) {
+                showToast(`⚠️ Strava ${res.status}: ${detail}${scopeInfo}`, 'error');
+            }
+            return;
+        }
+        const activities = await res.json();
+        if (!Array.isArray(activities)) return;
+
+        let addedCount = 0;
+        if (!currentSession.cardioLogs) currentSession.cardioLogs = [];
+        if (!currentSession.cyclingLogs) currentSession.cyclingLogs = [];
+        if (!currentSession.walkingLogs) currentSession.walkingLogs = [];
+        if (!currentSession.trainingDates) currentSession.trainingDates = [];
+
+        activities.forEach(act => {
+            const rawType = String(act.sport_type || act.type || '');
+            const tLower = rawType.toLowerCase();
+            const distKm = Math.round((act.distance / 1000) * 100) / 100;
+            const durSec = act.moving_time || act.elapsed_time || 0;
+            const actDate = act.start_date || new Date().toISOString();
+            const stravaId = String(act.id);
+            const shortDate = actDate.split('T')[0];
+
+            const isRun = tLower.includes('run') && !tLower.includes('wheelchair');
+            const isRide = tLower.includes('ride') || tLower.includes('cycle') || tLower.includes('bike');
+            const isWalk = tLower.includes('walk') || tLower.includes('hike') || tLower.includes('caminat');
+
+            // 1. TROTE (Run)
+            if (isRun) {
+                const alreadyExists = currentSession.cardioLogs.some(l => 
+                    String(l.stravaId) === stravaId || (l.tipo === 'strava' && l.date === actDate)
+                );
+                if (!alreadyExists) {
+                    const pps = distKm > 0 ? durSec / distKm : 0;
+                    const paceStr = distKm > 0 ? `${Math.floor(pps / 60)}:${String(Math.floor(pps % 60)).padStart(2, '0')}` : '--:--';
+                    currentSession.cardioLogs.unshift({
+                        id: `strava_${stravaId}`,
+                        stravaId: stravaId,
+                        date: actDate,
+                        tipo: 'strava',
+                        nombre: act.name || 'Trote Strava',
+                        duracion: durSec,
+                        distancia: distKm,
+                        ritmo: paceStr,
+                        calorias: act.calories || runKcal(distKm),
+                        pulsaciones: act.average_heartrate || null
+                    });
+                    if (!currentSession.trainingDates.includes(shortDate)) currentSession.trainingDates.push(shortDate);
+                    addedCount++;
+                }
+            }
+            // 2. CICLISMO (Ride)
+            else if (isRide) {
+                const alreadyExists = currentSession.cyclingLogs.some(l => 
+                    String(l.stravaId) === stravaId || (l.tipo === 'strava' && l.date === actDate)
+                );
+                if (!alreadyExists) {
+                    const speedKmh = durSec > 0 ? Math.round((distKm / durSec) * 3600 * 10) / 10 : 0;
+                    currentSession.cyclingLogs.unshift({
+                        id: `strava_${stravaId}`,
+                        stravaId: stravaId,
+                        date: actDate,
+                        tipo: 'strava',
+                        nombre: act.name || 'Ciclismo Strava',
+                        duracion: durSec,
+                        distancia: distKm,
+                        velocidad: speedKmh,
+                        calorias: act.calories || cycleKcal(distKm),
+                        pulsaciones: act.average_heartrate || null,
+                        elevacion: act.total_elevation_gain || 0
+                    });
+                    if (!currentSession.trainingDates.includes(shortDate)) currentSession.trainingDates.push(shortDate);
+                    addedCount++;
+                }
+            }
+            // 3. CAMINATA (Walk / Hike)
+            else if (isWalk) {
+                const alreadyExists = currentSession.walkingLogs.some(l => 
+                    String(l.stravaId) === stravaId || (l.tipo === 'strava' && l.date === actDate)
+                );
+                if (!alreadyExists) {
+                    const pps = distKm > 0 ? durSec / distKm : 0;
+                    const paceStr = distKm > 0 ? `${Math.floor(pps / 60)}:${String(Math.floor(pps % 60)).padStart(2, '0')}` : '--:--';
+                    currentSession.walkingLogs.unshift({
+                        id: `strava_${stravaId}`,
+                        stravaId: stravaId,
+                        date: actDate,
+                        tipo: 'strava',
+                        nombre: act.name || 'Caminata Strava',
+                        duracion: durSec,
+                        distancia: distKm,
+                        ritmo: paceStr,
+                        calorias: act.calories || walkKcal(distKm),
+                        pulsaciones: act.average_heartrate || null
+                    });
+                    if (!currentSession.trainingDates.includes(shortDate)) currentSession.trainingDates.push(shortDate);
+                    addedCount++;
+                }
+            }
+        });
+
+        const sortByDateDesc = (arr) => arr.sort((a, b) => new Date(b.date) - new Date(a.date));
+        sortByDateDesc(currentSession.cardioLogs);
+        sortByDateDesc(currentSession.cyclingLogs);
+        sortByDateDesc(currentSession.walkingLogs);
+
+        if (addedCount > 0) {
+            await syncSessionToFirestore();
+            renderRunHistory();
+            renderCycleHistory();
+            renderWalkHistory();
+            renderCardioChart();
+            renderConsistencyTracker();
+            if (showToastOnComplete) showToast(`⚡ Sincronizadas ${addedCount} actividades nuevas de Strava`, 'success');
+        } else if (showToastOnComplete) {
+            if (activities.length === 0) {
+                showToast('Strava no tiene actividades recientes registradas', 'info');
+            } else {
+                showToast(`Actividades al día (${activities.length} en Strava, ninguna nueva)`, 'info');
+            }
+        }
+    } catch (err) {
+        console.error('Error sincronizando actividades de Strava:', err);
+        if (showToastOnComplete) showToast('Error al sincronizar con Strava: ' + err.message, 'error');
+    } finally {
+        isSyncingStrava = false;
+        [stravaStatusEl, stravaStatusCyclingEl, stravaStatusWalkingEl].forEach(bar => {
+            if (bar) bar.classList.remove('strava-syncing');
+        });
+        updateStravaStatusUI();
+    }
+}
+
+// ── Subir actividad local a Strava ─────────────────────────────
+async function uploadActivityToStrava({ name, sportType, startDate, elapsedSeconds, distanceKm, description }) {
+    const token = await getValidStravaToken();
+    if (!token) return null;
+
+    try {
+        const body = {
+            name: name || 'Actividad Gym Tracker',
+            sport_type: sportType,
+            type: sportType,
+            start_date_local: startDate || new Date().toISOString(),
+            elapsed_time: Math.round(elapsedSeconds),
+            distance: Math.round(distanceKm * 1000),
+            description: description || 'Registrado con Gym Tracker Pro'
+        };
+
+        const res = await fetch('https://www.strava.com/api/v3/activities', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            showToast('⚡ ¡Actividad sincronizada con Strava!', 'success');
+            return data;
+        } else {
+            console.warn('Respuesta al subir actividad a Strava:', res.status);
+        }
+    } catch (err) {
+        console.error('Error al subir actividad a Strava:', err);
+    }
+    return null;
+}
+
 // ── Init Strava callback check ───────────────────────────────
 handleStravaCallback();
 async function handleStravaCallback() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
+    const grantedScope = params.get('scope') || '';
     if (!code) return;
     window.history.replaceState({}, '', window.location.pathname);
 
@@ -3101,10 +3577,18 @@ async function handleStravaCallback() {
                 access_token: data.access_token,
                 refresh_token: data.refresh_token,
                 expires_at: data.expires_at,
-                athlete: data.athlete
+                athlete: data.athlete,
+                scope: grantedScope
             }));
             updateStravaStatusUI();
-            showToast('¡Strava conectado exitosamente!', 'success');
+
+            const hasActivityRead = grantedScope.includes('activity:read');
+            if (grantedScope && !hasActivityRead) {
+                showToast('⚠️ Faltó marcar la casilla de actividades en Strava. Desconecta y vuelve a conectar marcando todas las casillas.', 'error');
+            } else {
+                showToast('¡Strava conectado exitosamente!', 'success');
+                syncStravaActivities(true);
+            }
         } else {
             throw new Error(data.error || 'No se recibió token');
         }
@@ -3429,6 +3913,16 @@ btnStopWorkout.addEventListener('click', () => {
     stopWorkoutTimer();
 });
 
+const btnForceReload = document.getElementById('btn-force-reload');
+if (btnForceReload) {
+    btnForceReload.addEventListener('click', () => {
+        showToast('Actualizando aplicación...', 'info');
+        setTimeout(() => {
+            window.location.href = window.location.origin + window.location.pathname + '?nocache=' + Date.now();
+        }, 300);
+    });
+}
+
 // App Init & Auth Listener
 onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -3437,6 +3931,7 @@ onAuthStateChanged(auth, async (user) => {
         welcomeMsg.textContent = `Hola, ${user.email}`;
         restoreWorkoutTimer();
         showScreen(screenHome);
+        syncStravaActivities(false);
     } else {
         if (workoutTimerBar) workoutTimerBar.classList.add('hidden');
         showScreen(screenLogin);

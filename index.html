@@ -10,7 +10,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=6.1">
+    <link rel="stylesheet" href="style.css?v=7.2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -72,6 +72,7 @@
                 <button id="btn-start-day" class="btn-primary">Iniciar Entrenamiento</button>
                 <button id="btn-start-running" class="btn-running-home">🏃 Registrar Trote</button>
                 <button id="btn-start-cycling" class="btn-cycling-home">🚴 Registrar Bicicleta</button>
+                <button id="btn-start-walking" class="btn-walking-home">🚶 Registrar Caminata</button>
                 <button id="btn-logout" class="btn-icon btn-logout-home">Cerrar sesión</button>
 
                 <div id="global-progress-container" class="chart-container" style="margin-top: 2rem; display: none;">
@@ -107,12 +108,15 @@
                         </div>
                     </div>
                     <!-- Legend -->
-                    <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
+                    <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
                         <span style="font-size: 0.7rem; color: #34d399; display: flex; align-items: center; gap: 4px;">
                             <span style="width:10px;height:10px;border-radius:50%;background:#34d399;display:inline-block;"></span> Trote
                         </span>
                         <span style="font-size: 0.7rem; color: #06b6d4; display: flex; align-items: center; gap: 4px;">
                             <span style="width:10px;height:10px;border-radius:50%;background:#06b6d4;display:inline-block;"></span> Bicicleta
+                        </span>
+                        <span style="font-size: 0.7rem; color: #f59e0b; display: flex; align-items: center; gap: 4px;">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> Caminata
                         </span>
                     </div>
                     <div style="height: 180px;">
@@ -121,6 +125,11 @@
                 </div>
 
                 <div id="consistency-tracker" class="consistency-container"></div>
+                <div id="app-version-badge" style="text-align: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+                    <span id="btn-force-reload" style="font-size: 0.72rem; color: rgba(255,255,255,0.35); cursor: pointer; text-decoration: underline; padding: 4px 8px;">
+                        v5.0 · 🔄 Forzar actualización
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -248,7 +257,10 @@
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Strava_Logo.svg/120px-Strava_Logo.svg.png" alt="Strava" class="strava-logo-img">
                         <span id="strava-status-text">Conecta para sincronizar automáticamente</span>
                     </div>
-                    <button id="btn-connect-strava" class="btn-strava-connect">Conectar</button>
+                    <div class="strava-status-actions" style="display: flex; gap: 6px; align-items: center;">
+                        <button id="btn-sync-strava-run" class="btn-strava-sync" title="Sincronizar ahora" style="display: none;">🔄 Sincronizar</button>
+                        <button id="btn-connect-strava" class="btn-strava-connect">Conectar</button>
+                    </div>
                 </div>
 
 
@@ -312,7 +324,10 @@
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Strava_Logo.svg/120px-Strava_Logo.svg.png" alt="Strava" class="strava-logo-img">
                         <span id="strava-status-text-cycling">Conecta para sincronizar automáticamente</span>
                     </div>
-                    <button id="btn-connect-strava-cycling" class="btn-strava-connect">Conectar</button>
+                    <div class="strava-status-actions" style="display: flex; gap: 6px; align-items: center;">
+                        <button id="btn-sync-strava-cycle" class="btn-strava-sync" title="Sincronizar ahora" style="display: none;">🔄 Sincronizar</button>
+                        <button id="btn-connect-strava-cycling" class="btn-strava-connect">Conectar</button>
+                    </div>
                 </div>
 
                 <!-- Mode Selector -->
@@ -362,7 +377,73 @@
             </div>
         </div>
 
-</div>
+        <!-- Screen 7: Walking Session -->
+        <div id="screen-walking" class="screen hidden" style="position: relative;">
+            <div class="screen-header">
+                <button id="btn-back-walking" class="btn-icon">← Volver al Inicio</button>
+            </div>
+            <div class="screen-content">
+                <h2 style="margin-bottom: 0.75rem;">🚶 Sesión de Caminata</h2>
+
+                <!-- Strava Connection Bar (walking) -->
+                <div id="strava-status-walking" class="strava-status-bar">
+                    <div class="strava-status-left">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Strava_Logo.svg/120px-Strava_Logo.svg.png" alt="Strava" class="strava-logo-img">
+                        <span id="strava-status-text-walking">Conecta para sincronizar automáticamente</span>
+                    </div>
+                    <div class="strava-status-actions" style="display: flex; gap: 6px; align-items: center;">
+                        <button id="btn-sync-strava-walk" class="btn-strava-sync" title="Sincronizar ahora" style="display: none;">🔄 Sincronizar</button>
+                        <button id="btn-connect-strava-walking" class="btn-strava-connect">Conectar</button>
+                    </div>
+                </div>
+
+                <div class="walking-mode-tabs">
+                    <button id="btn-walk-mode-gps" class="walking-mode-tab active">🛰️ Calle (GPS)</button>
+                    <button id="btn-walk-mode-treadmill" class="walking-mode-tab">🚶 Cinta / Interior</button>
+                </div>
+
+                <!-- GPS Mode Notice -->
+                <div id="walk-gps-status-bar" class="gps-status-bar">
+                    <span id="walk-gps-status-icon">📡</span>
+                    <span id="walk-gps-status-text">Buscando señal GPS...</span>
+                </div>
+
+                <!-- Timer Display -->
+                <div class="walking-timer-card">
+                    <div class="walking-timer" id="walking-timer">00:00:00</div>
+                    <div class="walking-stats-grid">
+                        <div class="walking-stat">
+                            <span class="walking-stat-value" id="walk-stat-distance">0.00</span>
+                            <span class="walking-stat-label">km</span>
+                        </div>
+                        <div class="walking-stat">
+                            <span class="walking-stat-value" id="walk-stat-pace">--:--</span>
+                            <span class="walking-stat-label">min/km</span>
+                        </div>
+                        <div class="walking-stat">
+                            <span class="walking-stat-value" id="walk-stat-calories">0</span>
+                            <span class="walking-stat-label">kcal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div id="walking-controls">
+                    <button id="btn-walk-start" class="btn-walk-action btn-walk-start">COMENZAR</button>
+                    <button id="btn-walk-stop" class="btn-walk-action btn-walk-stop" style="display:none;">DETENER Y GUARDAR</button>
+                </div>
+
+                <!-- Walking History -->
+                <div class="walking-history-container">
+                    <h3 class="walking-history-title">Historial de Sesiones</h3>
+                    <div id="walking-history-list" class="walking-history-list">
+                        <!-- populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
 
     <!-- Custom Modal Prompt -->
     <div id="modal-overlay" class="modal-overlay hidden">
@@ -400,7 +481,7 @@
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
 
-    <script type="module" src="app.js?v=4.11"></script>
+    <script type="module" src="app.js?v=5.3"></script>
 </body>
 
 </html>

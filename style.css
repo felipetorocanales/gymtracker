@@ -1662,7 +1662,9 @@ p {
     filter: brightness(1.1);
 }
 
-#strava-status-text {
+#strava-status-text,
+#strava-status-text-cycling,
+#strava-status-text-walking {
     font-size: 0.75rem;
     color: var(--text-secondary);
     white-space: nowrap;
@@ -1670,11 +1672,15 @@ p {
     text-overflow: ellipsis;
 }
 
-.strava-status-bar.strava-connected #strava-status-text {
+.strava-status-bar.strava-connected #strava-status-text,
+.strava-status-bar.strava-connected #strava-status-text-cycling,
+.strava-status-bar.strava-connected #strava-status-text-walking {
     color: #34d399;
 }
 
-.strava-status-bar.strava-syncing #strava-status-text {
+.strava-status-bar.strava-syncing #strava-status-text,
+.strava-status-bar.strava-syncing #strava-status-text-cycling,
+.strava-status-bar.strava-syncing #strava-status-text-walking {
     color: #60a5fa;
 }
 
@@ -1716,6 +1722,26 @@ p {
 
 .btn-strava-disconnect:hover {
     background: rgba(239, 68, 68, 0.22);
+}
+
+.btn-strava-sync {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 8px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+}
+
+.btn-strava-sync:hover {
+    background: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
 }
 
 /* Strava run history card extras */
@@ -2049,3 +2075,303 @@ p {
     font-size: 0.9rem;
     opacity: 0.7;
 }
+
+/* ============================================
+   WALKING MODULE
+   ============================================ */
+
+/* Home button */
+.btn-walking-home {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(245, 158, 11, 0.08);
+    color: #f59e0b;
+    margin-top: 0.6rem;
+    letter-spacing: 0.3px;
+}
+
+.btn-walking-home:hover {
+    background: rgba(245, 158, 11, 0.18);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
+}
+
+/* Mode Tabs */
+.walking-mode-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 0.3rem;
+    border-radius: 14px;
+    flex-shrink: 0;
+}
+
+.walking-mode-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Outfit', sans-serif;
+}
+
+.walking-mode-tab.active {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+/* Timer Card */
+.walking-timer-card {
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 20px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    flex-shrink: 0;
+    margin-bottom: 0.85rem;
+}
+
+.walking-timer {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #f59e0b;
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 1rem;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 30px rgba(245, 158, 11, 0.4);
+    transition: text-shadow 0.3s ease;
+}
+
+.walking-timer.walking {
+    text-shadow: 0 0 50px rgba(245, 158, 11, 0.7);
+}
+
+/* Stats Row */
+.walking-stats-grid {
+    display: flex;
+    justify-content: space-around;
+    gap: 0.5rem;
+}
+
+.walking-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    flex: 1;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.walking-stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.walking-stat-label {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Action Buttons */
+#walking-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+}
+
+.btn-walk-action {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+    transition: all 0.2s;
+    font-family: 'Outfit', sans-serif;
+}
+
+.btn-walk-start {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);
+}
+
+.btn-walk-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(245, 158, 11, 0.5);
+}
+
+.btn-walk-start.is-walking {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);
+    animation: walkPulse 2s ease-in-out infinite;
+}
+
+@keyframes walkPulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35); }
+    50%       { box-shadow: 0 4px 30px rgba(245, 158, 11, 0.65); }
+}
+
+.btn-walk-stop {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #f87171;
+}
+
+.btn-walk-stop:hover {
+    background: rgba(239, 68, 68, 0.22);
+    transform: translateY(-2px);
+}
+
+/* History Section */
+.walking-history-container {
+    margin-top: 1rem;
+}
+
+.walking-history-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.walking-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding-bottom: 2rem;
+}
+
+.walk-history-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+    transition: border-color 0.2s;
+}
+
+.walk-history-card:hover {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.walk-history-card.from-strava {
+    border-color: rgba(252, 76, 2, 0.2);
+}
+
+.walk-history-card.from-strava:hover {
+    border-color: rgba(252, 76, 2, 0.4);
+}
+
+.walk-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.walk-history-date {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #f59e0b;
+}
+
+.walk-history-mode {
+    font-size: 0.7rem;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 0.15rem 0.55rem;
+    color: var(--text-secondary);
+}
+
+.walk-history-stats {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.walk-history-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.walk-history-stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.walk-history-stat-label {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.walk-delete-btn {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #f87171;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s, background 0.2s;
+    font-family: 'Outfit', sans-serif;
+    line-height: 1;
+}
+
+.walk-delete-btn:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.25);
+}
+
+.walking-empty-state {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+

@@ -1,6 +1,6 @@
-# Gym Tracker Pro 🏋️‍♂️🏃‍♂️🚴‍♂️
+# Gym Tracker Pro 🏋️‍♂️🏃‍♂️🚴‍♂️🚶‍♂️
 
-Gym Tracker Pro es una aplicación web moderna, responsiva y de alto rendimiento diseñada para registrar y analizar tus sesiones de entrenamiento físico. Permite llevar el control tanto de ejercicios de fuerza (gimnasio) como de actividades cardiovasculares (trote y ciclismo), integrándose directamente con **Strava** y utilizando **Firebase** para la persistencia de datos.
+Gym Tracker Pro es una aplicación web moderna, responsiva y de alto rendimiento diseñada para registrar y analizar tus sesiones de entrenamiento físico. Permite llevar el control tanto de ejercicios de fuerza (gimnasio) como de actividades cardiovasculares (trote, ciclismo y caminata), integrándose directamente con **Strava** y utilizando **Firebase** para la persistencia de datos.
 
 ## ✨ Características Principales
 
@@ -11,8 +11,11 @@ Gym Tracker Pro es una aplicación web moderna, responsiva y de alto rendimiento
 *   **🚴 Ciclismo (Cycling):**
     *   Modo **Aire Libre (GPS)** con cálculo de velocidad y distancia.
     *   Modo **Indoor** para registrar entrenamientos bajo techo.
-*   **⚡ Integración con Strava:** Sincroniza tus actividades de trote y ciclismo directamente con tu cuenta de Strava de manera automática a través del flujo OAuth integrado.
-*   **📊 Gráficos de Progreso:** Visualización del volumen de entrenamiento y estimación de fuerza máxima (1RM) a lo largo de las semanas/meses usando *Chart.js*.
+*   **🚶 Caminata (Walking):**
+    *   Modo **Calle (GPS)** con ritmo en tiempo real, cálculo de distancia y gasto calórico.
+    *   Modo **Cinta / Interior** con registro manual tras la sesión.
+*   **⚡ Integración y Sincronización con Strava:** Sincroniza e importa automáticamente tus actividades de trote, ciclismo y caminata directamente desde tu cuenta de Strava vía OAuth 2.0 y Cloudflare Worker proxy.
+*   **📊 Gráficos de Progreso:** Visualización del volumen de entrenamiento (fuerza, 1RM y volumen cardio acumulado por disciplina) usando *Chart.js*.
 *   **🔒 Autenticación y Nube:** Login rápido por correo electrónico y almacenamiento en la nube en tiempo real mediante *Firebase Auth* y *Firestore*.
 *   **🎨 Diseño Premium:** Interfaz oscura elegante con efectos de Glassmorphism (vidrio esmerilado), degradados modernos, animaciones fluidas y optimización completa para dispositivos móviles.
 
