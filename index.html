@@ -70,9 +70,27 @@
                 <p id="welcome-msg" style="font-size:0.85rem; color: rgba(255,255,255,0.5); margin-bottom:0.25rem;"></p>
                 <p>Registra tu entrenamiento de hoy</p>
                 <button id="btn-start-day" class="btn-primary">Iniciar Entrenamiento</button>
-                <button id="btn-start-running" class="btn-running-home">🏃 Registrar Trote</button>
-                <button id="btn-start-cycling" class="btn-cycling-home">🚴 Registrar Bicicleta</button>
-                <button id="btn-start-walking" class="btn-walking-home">🚶 Registrar Caminata</button>
+
+                <!-- Hitos del último día de entrenamiento registrado -->
+                <div id="milestones-container" class="milestones-card" style="display: none;">
+                    <div class="milestones-header">
+                        <div class="milestones-title-group">
+                            <span class="milestones-icon">🏆</span>
+                            <div style="min-width: 0;">
+                                <h3 class="milestones-title">Hitos del Último Entrenamiento</h3>
+                                <p id="milestones-subtitle" class="milestones-subtitle">Cargando...</p>
+                            </div>
+                        </div>
+                        <span id="milestones-badge" class="milestones-badge">Semana 1</span>
+                    </div>
+                    <div id="milestones-list" class="milestones-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <button id="btn-start-running" class="btn-running-home" style="display: none !important;">🏃 Registrar Trote</button>
+                <button id="btn-start-cycling" class="btn-cycling-home" style="display: none !important;">🚴 Registrar Bicicleta</button>
+                <button id="btn-start-walking" class="btn-walking-home" style="display: none !important;">🚶 Registrar Caminata</button>
                 <button id="btn-logout" class="btn-icon btn-logout-home">Cerrar sesión</button>
 
                 <div id="global-progress-container" class="chart-container" style="margin-top: 2rem; display: none;">
@@ -98,8 +116,8 @@
                     </div>
                 </div>
 
-                <!-- Cardio Volume Chart -->
-                <div id="cardio-progress-container" class="chart-container" style="margin-top: 1rem; display: none;">
+                <!-- Cardio Volume Chart (Oculto) -->
+                <div id="cardio-progress-container" class="chart-container" style="display: none !important;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                         <h3 id="cardio-chart-title" style="font-size: 0.9rem; margin: 0; opacity: 0.8;">Volumen Cardio (km)</h3>
                         <div class="chart-tabs" style="margin: 0; padding: 0.15rem; background: rgba(255,255,255,0.05); width: auto;">
@@ -127,7 +145,7 @@
                 <div id="consistency-tracker" class="consistency-container"></div>
                 <div id="app-version-badge" style="text-align: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
                     <span id="btn-force-reload" style="font-size: 0.72rem; color: rgba(255,255,255,0.35); cursor: pointer; text-decoration: underline; padding: 4px 8px;">
-                        v5.0 · 🔄 Forzar actualización
+                        v6.0 · 🔄 Forzar actualización
                     </span>
                 </div>
             </div>
@@ -244,7 +262,7 @@
         </div>
 
         <!-- Screen 5: Running Session -->
-        <div id="screen-running" class="screen hidden" style="position: relative;">
+        <div id="screen-running" class="screen hidden" style="position: relative; display: none !important;">
             <div class="screen-header">
                 <button id="btn-back-running" class="btn-icon">← Volver al Inicio</button>
             </div>
@@ -311,7 +329,7 @@
         </div>
 
         <!-- Screen 6: Cycling Session -->
-        <div id="screen-cycling" class="screen hidden" style="position: relative;">
+        <div id="screen-cycling" class="screen hidden" style="position: relative; display: none !important;">
             <div class="screen-header">
                 <button id="btn-back-cycling" class="btn-icon">← Volver al Inicio</button>
             </div>
@@ -378,7 +396,7 @@
         </div>
 
         <!-- Screen 7: Walking Session -->
-        <div id="screen-walking" class="screen hidden" style="position: relative;">
+        <div id="screen-walking" class="screen hidden" style="position: relative; display: none !important;">
             <div class="screen-header">
                 <button id="btn-back-walking" class="btn-icon">← Volver al Inicio</button>
             </div>
@@ -481,7 +499,7 @@
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
 
-    <script type="module" src="app.js?v=5.3"></script>
+    <script type="module" src="app.js?v=6.2"></script>
 </body>
 
 </html>

@@ -364,6 +364,7 @@ function showScreen(screen) {
     screenChart.classList.add('hidden');
     if (screenRunning) screenRunning.classList.add('hidden');
     if (screenCycling) screenCycling.classList.add('hidden');
+    if (screenWalking) screenWalking.classList.add('hidden');
     screen.classList.remove('hidden');
 
     if (screen === screenHome) {
@@ -371,6 +372,7 @@ function showScreen(screen) {
         renderGlobalDayFilters();
         renderGlobalProgressChart();
         renderCardioChart();
+        renderLastWorkoutMilestones();
     }
 }
 
@@ -2569,161 +2571,338 @@ function renderGlobalDayFilters() {
 
 function renderCardioChart() {
     const container = document.getElementById('cardio-progress-container');
-    const ctx = document.getElementById('cardioChart');
-    if (!ctx || !container) return;
+    if (container) {
+        container.style.display = 'none';
+    }
+}
 
-    const runLogs = currentSession.cardioLogs || [];
-    const cycleLogs = currentSession.cyclingLogs || [];
-    const walkLogs = currentSession.walkingLogs || [];
+// ────────────────────────────────────────────────────────────────────────────
+// HITOS DEL ÚLTIMO ENTRENAMIENTO REGISTRADO
+// ────────────────────────────────────────────────────────────────────────────
 
-    // Helper: get week/month label from an ISO date string
-    const getMonday = (d) => {
-        const date = new Date(d);
-        const day = date.getDay();
-        const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-        const mon = new Date(date.setDate(diff));
-        mon.setHours(0, 0, 0, 0);
-        return mon;
-    };
+function formatRelativeDateSpanish(isoDateStr) {
+    if (!isoDateStr) return '';
+    try {
+        const parts = isoDateStr.split('-');
+        if (parts.length < 3) return isoDateStr;
+        const [year, month, day] = parts.map(Number);
+        const targetDate = new Date(year, month - 1, day, 12, 0, 0);
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        const diffMs = today.getTime() - targetDate.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-    const weekKey = (isoDate) => {
-        const mon = getMonday(new Date(isoDate));
-        return mon.toLocaleDateString('sv-SE'); // YYYY-MM-DD of that monday
-    };
+        if (diffDays === 0) return 'Hoy';
+        if (diffDays === 1) return 'Ayer';
+        if (diffDays > 1 && diffDays < 7) return `Hace ${diffDays} días`;
 
-    const monthKey = (isoDate) => {
-        const d = new Date(isoDate);
-        return d.toLocaleString('es-ES', { month: 'short', year: '2-digit' });
-    };
+        return targetDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    } catch {
+        return isoDateStr;
+    }
+}
 
-    // Aggregate distances per period
-    const aggregate = (logs, keyFn) => {
-        const map = {};
-        logs.forEach(log => {
-            if (!log.date || !log.distancia) return;
-            const k = keyFn(log.date);
-            map[k] = (map[k] || 0) + Number(log.distancia);
+function findLastWorkoutSession() {
+    if (!currentSession || !currentSession.logs) return null;
+
+    const days = currentSession.days || [];
+    if (days.length === 0) return null;
+
+    const dayMap = {};
+    const exToDayMap = {};
+    days.forEach(d => {
+        dayMap[d.id] = d;
+        (currentSession.customExercises?.[d.id] || []).forEach(e => exToDayMap[e] = d.id);
+        (currentSession.exerciseOrder?.[d.id] || []).forEach(e => exToDayMap[e] = d.id);
+    });
+
+    const sessionMap = {}; // key: `${dayId}__${weekNum}`
+
+    Object.entries(currentSession.logs).forEach(([exName, weekObj]) => {
+        if (!weekObj || typeof weekObj !== 'object') return;
+
+        let assignedDayId = exToDayMap[exName];
+        if (!assignedDayId) {
+            for (const d of days) {
+                if (currentSession.customExercises?.[d.id]?.includes(exName)) {
+                    assignedDayId = d.id;
+                    break;
+                }
+            }
+        }
+        if (!assignedDayId && days.length > 0) {
+            assignedDayId = days[0].id;
+        }
+
+        Object.entries(weekObj).forEach(([wKey, sets]) => {
+            if (!Array.isArray(sets) || sets.length === 0) return;
+            const weekNum = Number(wKey);
+            if (isNaN(weekNum) || weekNum <= 0) return;
+
+            const validSets = sets.filter(s => (Number(s.reps) || 0) > 0 || (Number(s.weight) || 0) > 0);
+            if (validSets.length === 0) return;
+
+            const sessionKey = `${assignedDayId}__${weekNum}`;
+            if (!sessionMap[sessionKey]) {
+                const dayObj = dayMap[assignedDayId] || { id: assignedDayId, name: assignedDayId };
+                const recordedDate = currentSession.sessionDates?.[assignedDayId]?.[String(weekNum)] || null;
+                sessionMap[sessionKey] = {
+                    dayId: assignedDayId,
+                    dayName: dayObj.name,
+                    weekNum: weekNum,
+                    dateStr: recordedDate,
+                    exercises: []
+                };
+            }
+
+            sessionMap[sessionKey].exercises.push({
+                name: exName,
+                sets: validSets
+            });
         });
-        return map;
-    };
+    });
 
-    const keyFn = cardioTimeUnit === 'week' ? weekKey : monthKey;
+    const sessions = Object.values(sessionMap).filter(s => s.exercises && s.exercises.length > 0);
+    if (sessions.length === 0) return null;
 
-    const runMap = aggregate(runLogs, keyFn);
-    const cycleMap = aggregate(cycleLogs, keyFn);
-    const walkMap = aggregate(walkLogs, keyFn);
+    // Ordenar para obtener la sesión más reciente
+    sessions.sort((a, b) => {
+        if (a.dateStr && b.dateStr) {
+            const cmp = b.dateStr.localeCompare(a.dateStr);
+            if (cmp !== 0) return cmp;
+        } else if (a.dateStr && !b.dateStr) {
+            return -1;
+        } else if (!a.dateStr && b.dateStr) {
+            return 1;
+        }
+        if (b.weekNum !== a.weekNum) {
+            return b.weekNum - a.weekNum;
+        }
+        const idxA = days.findIndex(d => d.id === a.dayId);
+        const idxB = days.findIndex(d => d.id === b.dayId);
+        return idxB - idxA;
+    });
 
-    // Union of all period keys, sorted chronologically
-    const allKeys = Array.from(new Set([
-        ...Object.keys(runMap),
-        ...Object.keys(cycleMap),
-        ...Object.keys(walkMap)
-    ])).sort();
+    return sessions[0];
+}
 
-    if (allKeys.length === 0) {
+function renderLastWorkoutMilestones() {
+    const container = document.getElementById('milestones-container');
+    const subtitleEl = document.getElementById('milestones-subtitle');
+    const badgeEl = document.getElementById('milestones-badge');
+    const listEl = document.getElementById('milestones-list');
+
+    if (!container || !listEl) return;
+
+    const lastSession = findLastWorkoutSession();
+    if (!lastSession || !lastSession.exercises || lastSession.exercises.length === 0) {
         container.style.display = 'none';
         return;
     }
 
-    // Build display labels
-    const labels = cardioTimeUnit === 'week'
-        ? allKeys.map(k => {
-            const d = new Date(k + 'T12:00:00');
-            return d.toLocaleString('es-ES', { day: '2-digit', month: 'short' });
-        })
-        : allKeys; // already month labels
+    const dateLabel = formatRelativeDateSpanish(lastSession.dateStr);
+    subtitleEl.textContent = dateLabel ? `${lastSession.dayName} · ${dateLabel}` : lastSession.dayName;
+    badgeEl.textContent = `Semana ${lastSession.weekNum}`;
 
-    const runData = allKeys.map(k => Math.round((runMap[k] || 0) * 100) / 100);
-    const cycleData = allKeys.map(k => Math.round((cycleMap[k] || 0) * 100) / 100);
-    const walkData = allKeys.map(k => Math.round((walkMap[k] || 0) * 100) / 100);
+    listEl.innerHTML = '';
 
-    container.style.display = 'block';
+    const getTopSet = (sets) => {
+        return sets.reduce((best, cur) => {
+            if (cur.weight > best.weight) return cur;
+            if (cur.weight === best.weight && cur.reps > best.reps) return cur;
+            return best;
+        }, sets[0]);
+    };
 
-    if (cardioChartInstance) cardioChartInstance.destroy();
+    const milestones = [];
 
-    const context = ctx.getContext('2d');
-    const runGrad = context.createLinearGradient(0, 0, 0, 180);
-    runGrad.addColorStop(0, 'rgba(52, 211, 153, 0.85)');
-    runGrad.addColorStop(1, 'rgba(52, 211, 153, 0.05)');
+    lastSession.exercises.forEach(exItem => {
+        const validCurr = (exItem.sets || []).map(s => ({
+            weight: Number(s.weight) || 0,
+            reps: Number(s.reps) || 0
+        })).filter(s => s.reps > 0 || s.weight > 0);
 
-    const cycleGrad = context.createLinearGradient(0, 0, 0, 180);
-    cycleGrad.addColorStop(0, 'rgba(6, 182, 212, 0.85)');
-    cycleGrad.addColorStop(1, 'rgba(6, 182, 212, 0.05)');
+        if (validCurr.length === 0) return;
 
-    const walkGrad = context.createLinearGradient(0, 0, 0, 180);
-    walkGrad.addColorStop(0, 'rgba(245, 158, 11, 0.85)');
-    walkGrad.addColorStop(1, 'rgba(245, 158, 11, 0.05)');
+        const currTop = getTopSet(validCurr);
+        const currMaxW = Math.max(...validCurr.map(s => s.weight));
 
-    cardioChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Trote (km)',
-                    data: runData,
-                    backgroundColor: runGrad,
-                    borderColor: '#34d399',
-                    borderWidth: 1.5,
-                    borderRadius: 6,
-                    borderSkipped: false,
-                    stack: 'cardio'
-                },
-                {
-                    label: 'Bicicleta (km)',
-                    data: cycleData,
-                    backgroundColor: cycleGrad,
-                    borderColor: '#06b6d4',
-                    borderWidth: 1.5,
-                    borderRadius: 6,
-                    borderSkipped: false,
-                    stack: 'cardio'
-                },
-                {
-                    label: 'Caminata (km)',
-                    data: walkData,
-                    backgroundColor: walkGrad,
-                    borderColor: '#f59e0b',
-                    borderWidth: 1.5,
-                    borderRadius: 6,
-                    borderSkipped: false,
-                    stack: 'cardio'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: { padding: { top: 10, left: 5, right: 5, bottom: 5 } },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    titleColor: '#34d399',
-                    bodyColor: '#fff',
-                    bodyFont: { weight: 'bold' },
-                    padding: 12,
-                    cornerRadius: 12,
-                    callbacks: {
-                        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} km`
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    stacked: true,
-                    grid: { display: false },
-                    ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10, weight: '600' } }
-                },
-                y: {
-                    stacked: true,
-                    beginAtZero: true,
-                    grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false },
-                    ticks: { display: false }
-                }
+        // Buscar la semana anterior inmediata con datos para este ejercicio
+        let prevWeekNum = null;
+        let prevSets = null;
+        const exLogs = currentSession.logs?.[exItem.name] || {};
+
+        for (let w = lastSession.weekNum - 1; w >= 1; w--) {
+            if (exLogs[w] && exLogs[w].length > 0) {
+                prevWeekNum = w;
+                prevSets = exLogs[w];
+                break;
             }
         }
+
+        const validPrev = prevSets ? prevSets.map(s => ({
+            weight: Number(s.weight) || 0,
+            reps: Number(s.reps) || 0
+        })).filter(s => s.reps > 0 || s.weight > 0) : [];
+
+        const prevTop = validPrev.length > 0 ? getTopSet(validPrev) : null;
+        const prevMaxW = validPrev.length > 0 ? Math.max(...validPrev.map(s => s.weight)) : 0;
+
+        // Verificar si es Récord Personal histórico (PR de peso)
+        let historicalMaxWeight = 0;
+        Object.entries(exLogs).forEach(([wStr, sList]) => {
+            if (Number(wStr) < lastSession.weekNum && Array.isArray(sList)) {
+                sList.forEach(s => {
+                    const w = Number(s.weight) || 0;
+                    if (w > historicalMaxWeight) historicalMaxWeight = w;
+                });
+            }
+        });
+        const isAllTimePR = prevTop && currMaxW > historicalMaxWeight && currMaxW > 0;
+
+        // Pesos comunes entre sesiones para comparar repeticiones con exactitud
+        const currWeightsMap = {};
+        validCurr.forEach(s => {
+            currWeightsMap[s.weight] = Math.max(currWeightsMap[s.weight] || 0, s.reps);
+        });
+        const prevWeightsMap = {};
+        validPrev.forEach(s => {
+            prevWeightsMap[s.weight] = Math.max(prevWeightsMap[s.weight] || 0, s.reps);
+        });
+
+        const commonWeights = [];
+        Object.keys(currWeightsMap).forEach(wStr => {
+            const w = Number(wStr);
+            if (prevWeightsMap[w] !== undefined) {
+                commonWeights.push({
+                    weight: w,
+                    currReps: currWeightsMap[w],
+                    prevReps: prevWeightsMap[w],
+                    diffReps: currWeightsMap[w] - prevWeightsMap[w]
+                });
+            }
+        });
+        commonWeights.sort((a, b) => b.weight - a.weight);
+
+        const diffMaxW = prevTop ? Math.round((currMaxW - prevMaxW) * 100) / 100 : 0;
+
+        let milestone = null;
+
+        if (!prevTop) {
+            // Primer registro
+            milestone = {
+                priority: 7,
+                tag: 'Primer registro ✨',
+                tagClass: 'badge-new',
+                title: exItem.name,
+                desc: `Registrado por primera vez: <b>${validCurr.length} serie${validCurr.length > 1 ? 's' : ''}</b>, alcanzando <b>${currMaxW} kg x ${currTop.reps} reps</b>.`
+            };
+        } else if (diffMaxW > 0 && currTop.reps < prevTop.reps) {
+            // Menos repeticiones pero con más peso ("menos repeticiones pero con mas peso")
+            const repDiff = prevTop.reps - currTop.reps;
+            milestone = {
+                priority: 3,
+                tag: `+${diffMaxW} kg · Más peso ⚡`,
+                tagClass: 'badge-cyan',
+                title: exItem.name,
+                desc: `Subiste a <b>${currMaxW} kg (+${diffMaxW} kg)</b> logrando <b>${currTop.reps} reps</b> (${repDiff} rep${repDiff > 1 ? 's' : ''} menos que con ${prevTop.weight} kg).`
+            };
+        } else if (diffMaxW > 0 && currTop.reps >= prevTop.reps) {
+            // Subió peso con mismas o más reps ("se subio tal peso, en tal ejercicio")
+            const repsAdd = currTop.reps - prevTop.reps;
+            const repNote = repsAdd > 0 ? ` (+${repsAdd} reps)` : ' (mismas reps)';
+            milestone = {
+                priority: isAllTimePR ? 1 : 2,
+                tag: isAllTimePR ? `🔥 Récord: +${diffMaxW} kg` : `+${diffMaxW} kg 🚀`,
+                tagClass: 'badge-green',
+                title: exItem.name,
+                desc: `Subiste de peso a <b>${currMaxW} kg (+${diffMaxW} kg)</b> logrando <b>${currTop.reps} reps</b>${repNote}.`
+            };
+        } else if (diffMaxW === 0 && commonWeights.length > 0) {
+            const primary = commonWeights[0];
+            if (primary.diffReps > 0) {
+                // Mismo peso, más repeticiones
+                milestone = {
+                    priority: 2,
+                    tag: `+${primary.diffReps} reps 💪`,
+                    tagClass: 'badge-green',
+                    title: exItem.name,
+                    desc: `Con <b>${primary.weight} kg</b> sacaste <b>${primary.currReps} reps</b> (<b>+${primary.diffReps} rep${primary.diffReps > 1 ? 's' : ''}</b> vs sesión anterior).`
+                };
+            } else if (primary.diffReps < 0) {
+                // Mismo peso, menos repeticiones ("que se hicieron menos repeticiones, con el mismo peso")
+                const lostReps = Math.abs(primary.diffReps);
+                milestone = {
+                    priority: 4,
+                    tag: `-${lostReps} reps (mismo peso) ⚠️`,
+                    tagClass: 'badge-amber',
+                    title: exItem.name,
+                    desc: `Con <b>${primary.weight} kg</b> hiciste <b>${primary.currReps} reps</b> (<b>${lostReps} rep${lostReps > 1 ? 's' : ''} menos</b> que las ${primary.prevReps} anteriores).`
+                };
+            } else {
+                // Mismo peso y mismas reps
+                milestone = {
+                    priority: 5,
+                    tag: 'Carga consolidada 🎯',
+                    tagClass: 'badge-blue',
+                    title: exItem.name,
+                    desc: `Mantuviste tu marca sólida de <b>${primary.weight} kg x ${primary.currReps} reps</b>.`
+                };
+            }
+        } else if (diffMaxW < 0) {
+            // Bajó peso
+            const lostW = Math.abs(diffMaxW);
+            milestone = {
+                priority: 6,
+                tag: `-${lostW} kg 🔄`,
+                tagClass: 'badge-gray',
+                title: exItem.name,
+                desc: `Carga máxima de <b>${currMaxW} kg</b> (-${lostW} kg respecto a los ${prevMaxW} kg anteriores).`
+            };
+        } else {
+            milestone = {
+                priority: 5,
+                tag: 'Sesión completada 🏋️‍♂️',
+                tagClass: 'badge-blue',
+                title: exItem.name,
+                desc: `Completaste tus series con máxima de <b>${currMaxW} kg x ${currTop.reps} reps</b>.`
+            };
+        }
+
+        if (milestone) {
+            milestones.push(milestone);
+        }
     });
+
+    if (milestones.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    // Ordenar por relevancia (récords y subidas primero)
+    milestones.sort((a, b) => a.priority - b.priority);
+
+    milestones.forEach(m => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'milestone-item';
+        itemEl.title = `Toca para ver ${m.title}`;
+        itemEl.innerHTML = `
+            <div class="milestone-item-top">
+                <span class="milestone-ex-name">
+                    <span>🏋️‍♂️</span> ${m.title}
+                </span>
+                <span class="milestone-badge-pill ${m.tagClass}">${m.tag}</span>
+            </div>
+            <p class="milestone-desc">${m.desc}</p>
+        `;
+        itemEl.addEventListener('click', () => {
+            activeDay = lastSession.dayId;
+            openExercise(m.title);
+        });
+        listEl.appendChild(itemEl);
+    });
+
+    container.style.display = 'block';
 }
 
 // ============================================================
