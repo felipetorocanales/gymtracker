@@ -3,14 +3,31 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Tracker Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Gym Tracker</title>
+
+    <!-- iOS Safari Add to Home Screen & PWA Configuration -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gym Tracker">
+
+    <!-- Apple Touch Icons (iPhone Home Screen) -->
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon-precomposed" href="apple-touch-icon-precomposed.png">
+
+    <!-- Standard Favicons & Web Manifest -->
+    <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="manifest" href="manifest.json">
+
     <!-- Muta versión de cache para forzar recarga -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=7.2">
+    <link rel="stylesheet" href="style.css?v=7.3">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -145,7 +162,7 @@
                 <div id="consistency-tracker" class="consistency-container"></div>
                 <div id="app-version-badge" style="text-align: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
                     <span id="btn-force-reload" style="font-size: 0.72rem; color: rgba(255,255,255,0.35); cursor: pointer; text-decoration: underline; padding: 4px 8px;">
-                        v6.0 · 🔄 Forzar actualización
+                        v6.1 · 🔄 Forzar actualización
                     </span>
                 </div>
             </div>
@@ -499,7 +516,7 @@
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
 
-    <script type="module" src="app.js?v=6.2"></script>
+    <script type="module" src="app.js?v=6.3"></script>
 </body>
 
 </html>
